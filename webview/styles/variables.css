@@ -1,0 +1,141 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Antigravity Maestro — design tokens.
+
+   Surfaces are generated, not hand-set: every layer is the host theme's own
+   sidebar colour with a measured amount of light (dark themes) or white and
+   shadow (light themes) laid over it, mixed in OKLCH so each step is the same
+   perceptual distance from the last. The panel therefore sits correctly in
+   Dark Modern, Light Modern, Solarized and anything else, while the brand
+   pair (cyan into violet, from the logo) and the family hues stay owned.
+
+   Colour has exactly three jobs here:
+     brand    the serving account, the selected tab, focus
+     family   Claude, Gemini, GPT — matched in lightness so none dominates
+     status   warn and low — only when a number needs attention
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --host-bg: var(--vscode-sideBar-background, #181818);
+  --host-fg: var(--vscode-foreground, #cccccc);
+
+  /* Brand */
+  --brand-1: #67e8f9;
+  --brand-2: #a78bfa;
+  --brand: var(--brand-1);
+  --brand-ink: #67e8f9;
+  --brand-soft: rgba(103, 232, 249, 0.14);
+
+  /* Surface ladder (dark). Canvas leans a touch toward blue-black so the
+     brand wash reads as light sitting on it. */
+  --canvas: color-mix(in oklch, var(--host-bg) 84%, #070b18);
+  --surface-0: color-mix(in oklch, var(--canvas), #000 14%);
+  --surface-1: color-mix(in oklch, var(--canvas), #fff 4.5%);
+  --surface-2: color-mix(in oklch, var(--canvas), #fff 7.5%);
+  --surface-3: color-mix(in oklch, var(--canvas), #fff 11%);
+  --glass: rgba(255, 255, 255, 0.045);
+  --glass-hi: rgba(255, 255, 255, 0.075);
+
+  /* Hairlines — texture rather than chrome. */
+  --line-soft: rgba(255, 255, 255, 0.06);
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.16);
+
+  /* Machined edge: a top highlight and a bottom shade on every raised surface. */
+  --edge: inset 0 1px 0 rgba(255, 255, 255, 0.06), inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+  --lift: 0 1px 1px rgba(0, 0, 0, 0.18), 0 4px 10px -2px rgba(0, 0, 0, 0.28);
+  --lift-hero: 0 18px 44px -18px rgba(103, 232, 249, 0.28), 0 6px 22px -10px rgba(167, 139, 250, 0.22);
+
+  /* Text — three steps, every one AA on every surface. */
+  --text-1: color-mix(in oklch, var(--host-fg), #fff 55%);
+  --text-2: color-mix(in oklch, var(--host-fg) 78%, var(--canvas));
+  --text-3: color-mix(in oklch, var(--host-fg) 62%, var(--canvas));
+
+  /* Families: saturated and matched in lightness — Claude coral, Gemini
+     blue, GPT-OSS green. */
+  --claude: oklch(0.74 0.16 38);
+  --gemini: oklch(0.72 0.155 256);
+  --gpt: oklch(0.79 0.165 155);
+  --other: oklch(0.75 0.02 260);
+
+  /* Status */
+  --good: oklch(0.8 0.14 158);
+  --warn: oklch(0.83 0.135 82);
+  --low: oklch(0.71 0.18 22);
+
+  /* Ring tracks are the family at low alpha, so an empty pool still says whose it is. */
+  --track-alpha: 17%;
+
+  /* Type */
+  --font-sans: var(--vscode-font-family, 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif);
+  --font-mono: var(--vscode-editor-font-family, 'Cascadia Code', Consolas, ui-monospace, monospace);
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-md: 14px;
+
+  /* 4px grid */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 20px;
+  --gutter: 12px;
+
+  /* Radius: 6 controls, 10 inner tiles, 14 cards. Nothing above 16. */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-full: 999px;
+
+  /* Motion: ease-out, never over 240ms. */
+  --ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --t-fast: 140ms var(--ease);
+  --t-base: 220ms var(--ease);
+}
+
+body.vscode-light {
+  --brand-1: #0891b2;
+  --brand-2: #7c3aed;
+  --brand-ink: #0e7490;
+  --brand-soft: rgba(8, 145, 178, 0.1);
+
+  --canvas: color-mix(in oklch, var(--host-bg) 80%, #e9eef7);
+  --surface-0: color-mix(in oklch, var(--canvas), #1e293b 6%);
+  --surface-1: #ffffff;
+  --surface-2: color-mix(in oklch, #ffffff, #1e3a8a 3%);
+  --surface-3: color-mix(in oklch, #ffffff, #1e3a8a 6%);
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-hi: rgba(255, 255, 255, 0.9);
+
+  --line-soft: rgba(15, 23, 42, 0.06);
+  --line: rgba(15, 23, 42, 0.09);
+  --line-strong: rgba(15, 23, 42, 0.16);
+
+  --edge: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --lift: 0 1px 1px hsl(222 40% 30% / 0.06), 0 3px 8px hsl(222 40% 30% / 0.06), 0 10px 22px -6px hsl(222 40% 30% / 0.08);
+  --lift-hero: 0 1px 1px hsl(222 40% 30% / 0.05), 0 14px 34px -14px rgba(8, 145, 178, 0.32), 0 8px 26px -14px rgba(124, 58, 237, 0.26);
+
+  --text-1: color-mix(in oklch, var(--host-fg), #000 45%);
+  --text-2: color-mix(in oklch, var(--host-fg) 86%, #64748b);
+  --text-3: color-mix(in oklch, var(--host-fg) 62%, #64748b);
+
+  --claude: oklch(0.63 0.18 36);
+  --gemini: oklch(0.55 0.2 260);
+  --gpt: oklch(0.6 0.16 155);
+  --other: oklch(0.55 0.02 260);
+
+  --good: oklch(0.55 0.13 155);
+  /* Dark enough for 4.5:1 as text on white. */
+  --warn: oklch(0.56 0.125 66);
+  --low: oklch(0.53 0.2 25);
+
+  --track-alpha: 14%;
+}
+
+body.vscode-high-contrast,
+body.vscode-high-contrast-light {
+  --line: var(--vscode-contrastBorder, #6fc3df);
+  --line-strong: var(--vscode-contrastBorder, #6fc3df);
+  --lift: none;
+  --lift-hero: none;
+}

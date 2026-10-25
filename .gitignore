@@ -1,0 +1,10 @@
+node_modules/
+dist/
+out/
+*.vsix
+.vs/
+.env
+.env.*
+!.env.example
+.agents/
+skills-lock.json

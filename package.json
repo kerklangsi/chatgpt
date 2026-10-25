@@ -1,0 +1,378 @@
+﻿{
+  "name": "chatgpt-maestro",
+  "displayName": "ChatGPT Maestro",
+  "description": "Run ChatGPT (OpenAI) models in Copilot Chat, Claude Code, and Codex without an API key using browser login. Multi-account rotation, quota tracking, and agent coordinator to delegate tasks across all available models.",
+  "version": "1.0.0",
+  "publisher": "husamettinulutas",
+  "author": {
+    "name": "Hüsamettin Ulutaş",
+    "url": "https://github.com/husamettinulutas"
+  },
+  "license": "MIT",
+  "icon": "resources/icon.png",
+  "galleryBanner": {
+    "color": "#0D1117",
+    "theme": "dark"
+  },
+  "engines": {
+    "vscode": "^1.104.0"
+  },
+  "categories": [
+    "AI",
+    "Chat",
+    "Other"
+  ],
+  "keywords": [
+    "chatgpt",
+    "openai",
+    "gpt-4o",
+    "o1",
+    "o3-mini",
+    "copilot",
+    "claude code",
+    "codex",
+    "browser login",
+    "coordinator",
+    "agent"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onLanguageModelChatProvider:chatgpt-maestro"
+  ],
+  "main": "./dist/extension.js",
+  "type": "commonjs",
+  "contributes": {
+    "languageModelChatProviders": [
+      {
+        "vendor": "chatgpt-maestro",
+        "displayName": "ChatGPT Maestro"
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "chatgpt_listAvailableModels",
+        "displayName": "List Available Models",
+        "userDescription": "Lists all other language models available in VS Code (Antigravity Maestro, OpenRouter Maestro, Copilot, etc.).",
+        "modelDescription": "List all language models available in the current VS Code workspace that can be delegated tasks.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "chatgpt_delegateTask",
+        "displayName": "Delegate Task to Model",
+        "userDescription": "Delegates a programming task, code review, or subtask to another available model in VS Code.",
+        "modelDescription": "Delegate a subtask to another available language model in VS Code (such as Claude from Antigravity, Gemini, OpenRouter, Copilot) and receive its completed answer.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "targetModelId": {
+              "type": "string",
+              "description": "The model ID to run the task on (e.g. antigravity-maestro/claude-sonnet-5-5-high, openrouter-maestro/..., copilot/gpt-4o)."
+            },
+            "taskTitle": {
+              "type": "string",
+              "description": "Short summary title of the task."
+            },
+            "taskDescription": {
+              "type": "string",
+              "description": "Full prompt and instructions for the assigned model."
+            },
+            "priority": {
+              "type": "string",
+              "enum": ["low", "normal", "high"],
+              "description": "Task priority."
+            }
+          },
+          "required": [
+            "targetModelId",
+            "taskTitle",
+            "taskDescription"
+          ]
+        }
+      },
+      {
+        "name": "chatgpt_coordinatorCreateTask",
+        "displayName": "Create Coordinator Task",
+        "userDescription": "Creates a task in the local agent coordinator task queue (.agent-coordinator/tasks.json).",
+        "modelDescription": "Create a task in the shared agent coordinator task queue for another agent to claim and execute.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "title": { "type": "string", "description": "Task title" },
+            "description": { "type": "string", "description": "Detailed task description" },
+            "assignee": { "type": "string", "description": "Optional model or agent name" },
+            "priority": { "type": "string", "enum": ["low", "normal", "high"] }
+          },
+          "required": ["title", "description"]
+        }
+      },
+      {
+        "name": "chatgpt_coordinatorListTasks",
+        "displayName": "List Coordinator Tasks",
+        "userDescription": "Lists tasks from the local agent coordinator queue.",
+        "modelDescription": "List open, claimed, blocked, or done tasks in the agent coordinator.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string", "enum": ["open", "claimed", "blocked", "done"] }
+          }
+        }
+      },
+      {
+        "name": "chatgpt_coordinatorUpdateTask",
+        "displayName": "Update Coordinator Task",
+        "userDescription": "Updates a coordinator task status and result.",
+        "modelDescription": "Update the status and result of an existing coordinator task.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "taskId": { "type": "string", "description": "Task ID" },
+            "status": { "type": "string", "enum": ["open", "claimed", "blocked", "done"] },
+            "agent": { "type": "string", "description": "Agent name reporting the update" },
+            "result": { "type": "string", "description": "Task result or summary" }
+          },
+          "required": ["taskId", "status", "agent"]
+        }
+      }
+    ],
+    "commands": [
+      {
+        "command": "chatgptMaestro.openAccounts",
+        "title": "ChatGPT Maestro: Open Accounts Panel",
+        "icon": "$(account)"
+      },
+      {
+        "command": "chatgptMaestro.addAccount",
+        "title": "ChatGPT Maestro: Add Account (Browser Login)",
+        "icon": "$(add)"
+      },
+      {
+        "command": "chatgptMaestro.addAccountToken",
+        "title": "ChatGPT Maestro: Add Account (Paste Session Token / Cookie)",
+        "icon": "$(key)"
+      },
+      {
+        "command": "chatgptMaestro.refreshQuotas",
+        "title": "ChatGPT Maestro: Refresh Quotas",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "chatgptMaestro.switchAccount",
+        "title": "ChatGPT Maestro: Switch Active Account",
+        "icon": "$(arrow-swap)"
+      },
+      {
+        "command": "chatgptMaestro.removeAccount",
+        "title": "ChatGPT Maestro: Remove Account",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "chatgptMaestro.coordinator.createTask",
+        "title": "ChatGPT Maestro Coordinator: Create Task",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "chatgptMaestro.coordinator.delegateToModel",
+        "title": "ChatGPT Maestro Coordinator: Delegate Task to Model",
+        "icon": "$(run-all)"
+      },
+      {
+        "command": "chatgptMaestro.claudeCode.apply",
+        "title": "ChatGPT Maestro: Use Model in Claude Code",
+        "icon": "$(rocket)"
+      },
+      {
+        "command": "chatgptMaestro.claudeCode.restore",
+        "title": "ChatGPT Maestro: Restore Claude Code Defaults (Anthropic)",
+        "icon": "$(discard)"
+      },
+      {
+        "command": "chatgptMaestro.codex.apply",
+        "title": "ChatGPT Maestro: Use Model in Codex",
+        "icon": "$(rocket)"
+      },
+      {
+        "command": "chatgptMaestro.codex.restore",
+        "title": "ChatGPT Maestro: Restore Codex Defaults (OpenAI)",
+        "icon": "$(discard)"
+      },
+      {
+        "command": "chatgptMaestro.copilot.setup",
+        "title": "ChatGPT Maestro: Set Up Copilot Chat",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "chatgptMaestro.copilot.restore",
+        "title": "ChatGPT Maestro: Restore Copilot Chat Defaults",
+        "icon": "$(discard)"
+      },
+      {
+        "command": "chatgptMaestro.commitMessages.apply",
+        "title": "ChatGPT Maestro: Use Model for Commit Messages",
+        "icon": "$(git-commit)"
+      },
+      {
+        "command": "chatgptMaestro.commitMessages.restore",
+        "title": "ChatGPT Maestro: Restore Commit Messages to Copilot",
+        "icon": "$(discard)"
+      },
+      {
+        "command": "chatgptMaestro.restartGateway",
+        "title": "ChatGPT Maestro: Restart Local Gateway",
+        "icon": "$(debug-restart)"
+      },
+      {
+        "command": "chatgptMaestro.copyGatewayInfo",
+        "title": "ChatGPT Maestro: Copy Local Gateway URL and Key",
+        "icon": "$(clippy)"
+      },
+      {
+        "command": "chatgptMaestro.showLogs",
+        "title": "ChatGPT Maestro: Show Logs",
+        "icon": "$(output)"
+      },
+      {
+        "command": "chatgptMaestro.showStatus",
+        "title": "ChatGPT Maestro: Show Integration Status",
+        "icon": "$(info)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "chatgpt-maestro",
+          "title": "ChatGPT Maestro",
+          "icon": "resources/activity-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "chatgpt-maestro": [
+        {
+          "id": "chatgpt-maestro-accounts",
+          "name": "ChatGPT Maestro",
+          "type": "webview"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "ChatGPT Maestro",
+      "properties": {
+        "chatgptMaestro.gateway.port": {
+          "type": "number",
+          "default": 8766,
+          "minimum": 1024,
+          "maximum": 65535,
+          "description": "Preferred port for the local gateway that Claude Code and Codex talk to."
+        },
+        "chatgptMaestro.gateway.autoStart": {
+          "type": "boolean",
+          "default": true,
+          "description": "Start the local gateway automatically when VS Code launches."
+        },
+        "chatgptMaestro.browser.path": {
+          "type": "string",
+          "default": "",
+          "description": "Path to Microsoft Edge or Google Chrome executable for browser login. Leave empty to auto-detect."
+        },
+        "chatgptMaestro.browser.headless": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run the browser headlessly. Default is false so you can complete sign-in and Cloudflare Turnstile."
+        },
+        "chatgptMaestro.quota.autoRefreshMinutes": {
+          "type": "number",
+          "default": 10,
+          "minimum": 0,
+          "maximum": 240,
+          "description": "How often to refresh ChatGPT account session and status in the background."
+        },
+        "chatgptMaestro.rotation.strategy": {
+          "type": "string",
+          "enum": [
+            "highest-quota-first",
+            "round-robin",
+            "manual"
+          ],
+          "default": "highest-quota-first",
+          "description": "How to rotate between multiple connected ChatGPT accounts when limits are reached."
+        },
+        "chatgptMaestro.rotation.cooldownMinutes": {
+          "type": "number",
+          "default": 15,
+          "minimum": 1,
+          "maximum": 1440,
+          "description": "Fallback cooldown applied to an account after a rate limit."
+        },
+        "chatgptMaestro.rotation.maxWaitSeconds": {
+          "type": "number",
+          "default": 60,
+          "minimum": 0,
+          "maximum": 300,
+          "description": "How long a request may wait for a cooling-down account to recover before failing."
+        },
+        "chatgptMaestro.saveHistoryInChatGPTWeb": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether to save API conversations into your ChatGPT web chat history sidebar."
+        },
+        "chatgptMaestro.claudeCode.settingsScope": {
+          "type": "string",
+          "enum": [
+            "user",
+            "project"
+          ],
+          "default": "user",
+          "description": "Where to write Claude Code environment settings."
+        },
+        "chatgptMaestro.claudeCode.smallFastModel": {
+          "type": "string",
+          "default": "",
+          "description": "Model ID used for Claude Code background tasks."
+        },
+        "chatgptMaestro.codex.configPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Codex config.toml."
+        },
+        "chatgptMaestro.reloadOnModelChange": {
+          "type": "string",
+          "enum": [
+            "prompt",
+            "auto",
+            "never"
+          ],
+          "default": "prompt",
+          "description": "Prompt to reload VS Code after changing models for Claude Code or Codex."
+        },
+        "chatgptMaestro.logLevel": {
+          "type": "string",
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "default": "info",
+          "description": "Minimum log level for the ChatGPT Maestro output channel."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.js --production",
+    "compile": "tsc --noEmit",
+    "watch": "node esbuild.js --watch",
+    "test": "tsc -p tsconfig.json && node --test \"out/__tests__/*.test.js\"",
+    "package": "npx @vscode/vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.104.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.5.0"
+  }
+}

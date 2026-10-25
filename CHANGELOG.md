@@ -1,0 +1,1144 @@
+# Changelog
+
+## 1.3.3
+
+- **Claude Code no longer spends Opus quota when another model was picked.**
+  Claude Code sends some of its background calls under a Claude id it
+  chooses itself, whatever model it was wired to. One example is
+  `claude-opus-4-6`, sent with a 1k thinking budget around tool calls.
+  Others use a dated haiku id. The `ANTHROPIC_DEFAULT_*_MODEL` overrides
+  never reach these calls. No account offers those ids exactly, so the
+  gateway resolved them by family to the best Claude model available, and
+  Opus 4.6 answered beside the Gemini model the user had picked, using up
+  its allowance. Claude Code requests for a Claude id that no account
+  serves as-is now go to Claude Code's background model, or to the
+  account's fast model when none was picked. The request log records each
+  of these redirects. A Claude model picked on purpose
+  (`claude-opus-4-6-thinking`) and requests from other clients are served
+  as before.
+
+## 1.3.2
+
+- **A chat that used tools on a Gemini thinking model no longer fails every
+  request after that turn.** Gemini 3 signs only the first call of a parallel
+  tool turn and correlates those signatures by the call id. Gemini issues no
+  id for the other calls, so the extension made one up for each, and replaying
+  the turn sent those made-up ids back; Cloud Code Assist refused the whole
+  request with a bare `HTTP 400: Request contains an invalid argument.` The
+  turn was in the conversation by then, which is why every request after it
+  failed the same way. The id is left off the Gemini wire only, so the
+  conversation stops carrying one Gemini never issued; every other model is
+  sent it exactly as before. Thanks to @NeoMetric (#8, #9).
+- **The provider starts as soon as Copilot Chat asks for its models.** The
+  extension now declares `onLanguageModelChatProvider:antigravity-maestro`,
+  so VS Code loads it on demand like every other BYOK extension, instead of
+  waiting for startup to finish or the accounts panel to open. Until then
+  Copilot Chat could not find the models and warned about a missing
+  `antigravity-maestro/gpt-oss-120b-medium`. If the models still do not show
+  in the picker, check that they are switched on under **Manage Models →
+  Antigravity Maestro**. Thanks to @NeoMetric (#10, #11).
+
+## 1.3.1
+
+- **Ultracode reaches the model again with Claude Code 2.1.295.** That
+  version no longer wraps its ultracode reminders in `<system-reminder>`
+  text inside user messages; it sends them as `system` messages among the
+  conversation. The gateway only looked for the old form, so it never saw
+  ultracode was on, and Gemini and GPT-OSS answered without starting a
+  workflow. Both forms are read now, and the request log shows
+  `ultracode=session` again.
+- **Compaction stays tool-free under ultracode.** Claude Code now often ends
+  a request with a `system` message, which hid its "do not call tools"
+  prompt from the gateway. The prompt is found wherever it sits after the
+  last answer, so a summary request is not told to orchestrate.
+
+## 1.3.0
+
+- **Each window keeps its own account.** Picking an account in one VS Code
+  window used to move every other open window to it, because the choice was
+  stored where all windows share it. Each window and project folder now keeps
+  its own account, so two or three projects can run on different accounts
+  side by side.
+- **Claude Code and Codex follow their window's account.** Each window sets
+  its name in the environment of the agents it launches, and they send it
+  with every request. Whichever window's gateway answers, the request runs on
+  the account that window chose. An existing Codex config gets the header
+  added on its own.
+- **One gateway address for every window.** A window that cannot bind the
+  preferred port no longer hands agents its fallback port. It gives them the
+  preferred address while another window's gateway answers there, and takes
+  the port over when that window closes. A config left pointing at a port
+  that no longer answers is re-pointed.
+- **Usage by time range.** The Usage tab filters by This hour, Today,
+  Yesterday, 7 days, 30 days or All, and every figure follows the range.
+  Today and Yesterday show each other for comparison, and the longer ranges
+  add a day-by-day bar row. The choice is remembered.
+- **Clear history asks how much.** It offers This hour, Today, Yesterday,
+  the last 7 or 30 days, everything older than 7 or 30 days, or Everything.
+  Each choice says what it would remove, and it removes usage and quota
+  readings alike. Everything asks for confirmation first.
+- **Usage history no longer runs out.** Usage used to be kept as the last
+  2000 requests, which a busy Claude Code day could overflow. It is now kept
+  as hourly totals for 400 days. Existing history is carried over on update.
+- **Ultracode works on the models served here.** Claude Code announces
+  ultracode only in reminders inside the conversation, which Gemini and
+  GPT-OSS weighed too lightly to start workflows on their own. When ultracode
+  is on, the gateway now restates it at the end of the system instruction, so
+  the model runs workflows on substantive tasks without being told. Workflow
+  subagents and Claude Code's own side requests, such as compaction, are left
+  alone. The request log shows the state.
+- **No blur over the panel when a tooltip opens.** Hovering **Use model**
+  made Chromium redraw the blurred cards in stale strips. The cards no longer
+  blur what is behind them; nothing scrolled under them anyway.
+- **The status bar item is gone.** The panel shows the same account and
+  quota with more detail.
+
+## 1.2.0
+
+- **A redesigned accounts panel.** The account serving right now leads the
+  Accounts tab on its own card. Each model family (Claude, Gemini, GPT-OSS)
+  has a ring gauge with its reset countdown, followed by the rolling 5-hour
+  and weekly windows. A window group that is entirely full folds to one line.
+- **The panel tells you when to switch.** When the serving account is
+  draining fast, its card says when the family will run dry and how long
+  before it resets. When another account has more of that family left, the
+  card names it and switches to it in one click.
+- **The rest of the pool is listed in rotation order.** Each account shows
+  its position, its status in words ("Claude empty · back in 1h 20m"), a
+  pill per family, and one **Use** or **Sign in** button. Refreshing,
+  moving and removing an account are in its ⋯ menu, so Remove no longer
+  sits next to Use. Dragging still sets the order.
+- **Connections sit at the top, folded.** One card shows whether the
+  gateway is running, with copy and restart a click away, and which agents
+  are wired. The five integration cards that used to push the accounts
+  below the fold are gone. A line under the title ("Gateway on · 2 of 4
+  tools") carries the same health on both tabs.
+- **Usage tells you where the tokens went.** It shows the total served
+  with its input / thinking / output mix, then each model's tokens. Every
+  model has its own input, thinking and output figures and the accounts
+  that served it. A share per account and a quota history per account
+  follow, the history with how fast each family drains. Model ids are
+  shown by their display names.
+- **A new icon.** The model now sits inside a quota ring over the field it
+  bends, in the marketplace icon, the activity bar and the panel.
+- **The view's title bar no longer repeats the panel.** Its add, refresh
+  and open-in-editor buttons are gone, since the panel has its own, and
+  the title reads "Antigravity Maestro" instead of "Antigravity Maestro:
+  Accounts". The editor-tab version is still in the Command Palette.
+- Only the serving account starts expanded. Accounts you expanded before
+  this update start folded again.
+
+## 1.1.0
+
+- **Copilot Chat offers a Thinking Effort choice for the tiered Gemini Flash
+  models.** Google serves `gemini-3.8-flash-tiered` and the other `*-tiered`
+  ids as one model whose effort each request picks. Where VS Code supports
+  it, the model picker now shows a Low / Medium / High control for them, in
+  the Local harness and the Copilot CLI one alike: about 1K or 4K tokens of
+  thinking, or the model's full budget.
+  `antigravityMaestro.copilot.thinkingEffort` sets the default, and is what
+  a VS Code without the control uses. These models are listed as "Gemini 3.8
+  Flash" instead of "Gemini 3.8 Flash (Tiered)", unless another model already
+  has that name. Thanks to @CatDogFishFrog (#7).
+- **Codex's reasoning effort sets the thinking budget.** The gateway ignored
+  it, so every Codex request paid for the model's full budget. Low and
+  medium now think less, the same as Claude Code's `--effort`, and minimal
+  and none get low's share. Codex only sends its effort to models it knows
+  as OpenAI ones, so applying the Codex integration now also writes
+  `model_supports_reasoning_summaries = true`; without it the effort and the
+  reasoning summary request never left Codex. Apply the model in Codex again
+  to pick this up. The integration still writes `high`, so nothing changes
+  until you lower it.
+- **The model is told the effort it runs at.** Every client sends its effort
+  as a request field, and it only ever became a thinking budget, so asked
+  about it, Gemini guessed: "default/medium" with Claude Code on Max, while
+  it could name Ultracode, which arrives as text. A one-line note at the end
+  of the system prompt now names the effort and its budget. The gateway's
+  request log shows them too (`effort=max, thinking=10000`).
+
+## 1.0.18
+
+- **A model only another account has is now served by that account.**
+  Accounts on different plans are offered different models — one has Claude
+  Opus 5.5 where another still has Opus 4.6 — and Copilot, Claude Code and
+  Codex list every account's models together. Picking Opus 5.5 while the
+  active account only had 4.6 got an answer from Opus 4.6 on the active
+  account: every account resolves a Claude id to *some* Claude model, and the
+  active account is always tried first. Copilot still showed Opus 5.5. Only
+  the accounts with the closest match are tried now, so the request moves to
+  the account that has the model and that account becomes the active one. A
+  stand-in is used only when no account has anything closer.
+- If the account that has the model is rate limited, the request waits for
+  it instead of falling back to another model, and the error counts the
+  accounts "without this model" separately. With rotation set to `manual`,
+  the error names the account that has the model.
+- A retired model goes to the successor Google names for it. Google keeps
+  sending that mapping, and it was stored but never used.
+- The status bar names Claude with its version ("Opus 5.5 100%" rather
+  than "Opus 100%"), and a quota pool holding several Claude versions is
+  named after the newest one. The Copilot tooltip and the model pickers say
+  which account has a model the active account lacks.
+- **The Gemini row is named after a model Google still offers.** The panel
+  and status bar named the Gemini quota pool "Gemini 3.5 Flash (High)",
+  because that id was pinned in the code. Google still reports the model
+  with a quota reading, but it no longer serves it. The pool is now named
+  after the first model in Google's own list for the Antigravity model
+  picker (`agentModelSorts`), so it follows whatever Antigravity currently
+  offers.
+- **A model Google has withdrawn disappears from every list, and its request
+  goes to the model Google names instead.** Gemini 3.5 Flash still appears
+  in Google's model list with a full quota, so it stayed in the Copilot,
+  Claude Code and Codex pickers. Every message to it got "Gemini 3.5 Flash
+  is no longer available. Please switch to Gemini 3.7 Flash in the latest
+  version of Antigravity." back as the answer. That sentence is the only
+  signal Google gives, so the gateway now recognises it before any of it
+  reaches the chat and removes every effort of that model on all accounts.
+  The removal is kept across restarts and quota refreshes. The same request
+  is then sent again to the named model at the same effort (3.5 Flash High
+  goes to 3.7 Flash High), so the user gets an answer instead of the notice.
+  A short reply made only of text is held back for its first ~120
+  characters until it is clearly not that notice.
+- **Background requests follow Google's current Flash model.** Claude Code's
+  haiku-class calls for titles and summaries, and the other small-model
+  aliases, were pinned to `gemini-3.5-flash-low`. Without that id they would
+  go to the best model of the family they named, so a haiku request would
+  land on Opus and spend its allowance. They now go to the model Google names as
+  its flash tier (`tieredModelIds`), or the first Flash in the Antigravity
+  list. Other stand-ins also prefer models from that list over ones Google
+  only still reports.
+
+## 1.0.17
+
+- **Claude Code works on Gemini 3.7/3.8 Flash again instead of "Every
+  account is unavailable for this model".** Claude Code opens its system
+  prompt with an `x-anthropic-billing-header: cc_version=…` line and the
+  sentence "You are a Claude agent, built on Anthropic's Claude Agent SDK.",
+  and Cloud Code answers a request carrying them with a bare 429 "Resource
+  has been exhausted" on every account at once — Copilot, which sends
+  neither, worked on the same accounts. The gateway now drops both before
+  the request goes upstream, and applying the Claude Code integration sets
+  `CLAUDE_CODE_ATTRIBUTION_HEADER=0` so the line is not sent at all. Without
+  the per-build billing tag the prompt prefix can also be cached again.
+- **A 429 with no retry delay no longer stops the rotation.** Three of them
+  in a row were read as a limit on this client, so the remaining accounts
+  were left untried and the whole pool was put on cooldown. Only identical
+  waits Google actually reports count as a shared limit now.
+- **Claude Code's `--effort` sets the thinking budget.** Low and medium
+  effort think less (1k / 4k tokens on Gemini Flash); high, xhigh and max
+  keep the model's full budget. Effort was ignored before, so every request
+  paid for the full budget.
+- The wait in an `ErrorInfo` `quotaResetDelay` is honoured when a 429 has
+  no `RetryInfo`, and every 429 that ends a request logs the start of its
+  body, which is what tells a spent quota from a refused request.
+- `gemini-3.8-flash-tiered` gets the same output and thinking limits as 3.7.
+
+## 1.0.16
+
+- **An autopilot session ends cleanly instead of failing on its last
+  request.** Every autopilot run in Copilot Chat ended with "Antigravity
+  returned an empty response (finish reason: STOP)", three "Autopilot
+  recovered from a request error" lines, and "Sorry, your request failed".
+  Autopilot always sends one more request after the model calls
+  `task_complete`, carrying only that tool's result — the model's own
+  summary, which the tool tells it not to restate — so the model rightly
+  answers with nothing. That nothing was treated as a fault: asked again
+  unchanged, then thrown, and Copilot resends a failed request three times.
+  Eight full-context requests were billed for a task that was already done.
+  That request is now answered without calling the model at all.
+
+- **A model that ends its turn with nothing to say has finished, not
+  failed.** Anthropic documents the empty `end_turn` for Claude, and Gemini 3
+  emits empty wrap-up turns on purpose; sending the same request again only
+  gets the same decision. The model is now nudged once with a continuation
+  prompt — only the upstream sees it, never the conversation — and if it
+  still has nothing to add, the turn ends as a success. Only a stream cut off
+  before it finished is still a retryable failure. A refusal (safety stop,
+  token cap, an overlong prompt) is explained in the answer instead of thrown,
+  since Copilot retried every failure regardless of its cause. A response of
+  reasoning alone, which Copilot reported as "Sorry, no response was
+  returned", now counts as a finished turn too.
+
+- The gateway follows the same rules. Claude Code got a retryable 502 for a
+  silent turn and resent it up to ten times; it now gets a finished message
+  (`.` with `end_turn`), and OpenAI clients get an empty completion.
+
+- **Parallel tool calls keep their shape on the thinking Gemini models.**
+  Gemini signs only the first call of a parallel batch, and every call after
+  it was retold as text in each later turn. The signature is now judged per
+  step, as Gemini checks it; a signature in use no longer expires after an
+  hour; and Copilot's `task_complete` bookkeeping and the model's own earlier
+  reasoning are no longer replayed to it as things it said.
+
+- Turkish letters and other multi-byte characters split across network
+  chunks arrived as `��` — in answers and in the arguments of file edits.
+
+- **Copilot Chat now knows how big a conversation really is.** It sizes every
+  prompt through the extension and compacts the conversation once the budget
+  runs out, but two things kept it guessing low. The upstream's own token
+  count was never passed on, so the context indicator read empty and
+  background compaction ran on an estimate; it is now reported with every
+  answer. And the estimate counted tool-call arguments as nothing, though
+  every file an edit tool writes travels in them; they count now, and so do
+  images, at what the models charge per image. Compaction comes before a
+  prompt outgrows the model — past that point the upstream bills the request
+  and answers with nothing.
+
+- **A conversation stays on the account it started on.** The upstream caches
+  a conversation's prompt on the account serving it, and moving a
+  conversation partway pays for its whole history again. Copilot Chat, Claude
+  Code and Codex all name the conversation a request belongs to, and its
+  requests now stay on one account while that account can serve them — so
+  parallel chats, or Claude Code and its subagents, no longer drag each other
+  across accounts when one of them hits a rate limit. Picking an account by
+  hand still moves every conversation to it.
+
+- **A stream that goes quiet is dropped, named, and asked again.** An
+  upstream that stopped sending partway ended the turn with a bare
+  "aborted"; a connection that kept trickling bytes without an event in them
+  was never timed out at all. The request timeout now also bounds the silence
+  between two parts of a stream, and a stream that breaks off before anything
+  was shown is asked once more.
+
+- The gateway's OpenAI surfaces had the same parallel tool call problem as
+  Copilot Chat on the thinking Gemini models, and have the same fix.
+
+## 1.0.15
+
+- **The picker says how much context a model has, before you switch to it.**
+  Moving a long conversation from a Gemini model to a Claude one makes Copilot
+  Chat compact it — the "Compacting conversation…" turn — because the windows
+  differ by roughly five times, and that summary is charged to the account
+  like any other turn. Nothing said so until it had happened. Every model now
+  carries its window in the picker, and the hover on a model with a smaller
+  one than its neighbours says what switching to it will cost.
+
+- Each request logs the share of the window its prompt fills, and warns past
+  80%. A compaction was indistinguishable from an ordinary turn in the log,
+  which made an expensive one impossible to account for after the fact.
+
+## 1.0.14
+
+- **A tool call made by one model no longer breaks the next one.** Switching
+  model partway through a conversation — picking Claude in the middle of a
+  Gemini session, or going back — failed the turn outright, and failed it
+  differently depending on which way the switch went. Gemini answered
+  `HTTP 400: Function call is missing a thought_signature`; Claude accepted
+  the request, billed it, and closed the stream with nothing in it. Both were
+  the same mistake.
+
+  The upstream issues a thought signature with every reasoning block and tool
+  call, and demands it back when the call is replayed. Those signatures were
+  kept under the call id alone, with no record of which model minted them, so
+  a turn made by Claude was replayed to Gemini carrying a signature Gemini had
+  never issued — and once the lookup missed, the call went up bare, which is
+  what the upstream refuses. A signature now carries the model family that
+  issued it and is offered back only to that family.
+
+- **A tool call with no usable signature is retold, not dropped and not sent
+  bare.** Reloading the extension empties the signature store; an hour's
+  pause ages it out; a client replaying a session from disk never had one.
+  Any of those turned the next message into a rejected request with no way
+  forward. Such a call is now written into the history as text — the call and
+  its result together, because a result whose call is missing is refused just
+  as hard — so the conversation stays readable and the turn goes through.
+  Only the thinking Gemini models need this; the ones that do not think never
+  issue a signature and never ask for one, and their tool calls are untouched.
+
+- **A conversation past the model's context limit no longer burns tokens on
+  silence.** The upstream does not reject an overlong prompt. It accepts it,
+  charges for it in full, and closes the stream with `finishReason: STOP` and
+  no content — which read as an empty answer, so the turn was asked again,
+  and the client asked again after that. One affected session spent eight
+  full-price Opus requests, every one of them silent, before every account
+  went into cooldown.
+
+  When the upstream's own prompt token count exceeds what the model accepts,
+  the silence is explained rather than retried: the failure now names the
+  size, the limit and the model, and says to start a new chat or pick a model
+  with more room. A request so far past the limit that no estimate could
+  excuse it is refused before it is sent at all — loosely, because a
+  characters-per-token ratio is not a tokenizer and a prompt that merely fits
+  tightly deserves to be tried.
+
+## 1.0.13
+
+- **An empty answer is no longer silent.** A request could end with nothing
+  shown and nothing logged — Copilot Chat printed "Sorry, no response was
+  returned", the agents retried until they gave up, and sending the same
+  message again worked. Three separate silences were behind it:
+
+  - A failure the upstream reports *inside* the stream, as a chunk carrying
+    `error` instead of candidates, was yielded on as if it were a response.
+    A rate limit arriving that way now backs the account off and rotates to
+    another one, exactly as the same refusal on the response headers does.
+
+  - A stream that closed without a word, a tool call or a thought in it was
+    treated as a finished turn. It is now a failure that says why, is logged
+    with the account and model it happened on, and is asked once more on the
+    same account — which is what the user was doing by hand. A deliberate
+    silence (a blocked prompt, a safety stop) is reported rather than
+    retried, so clients stop retrying a request that cannot succeed.
+
+  - The gateway wrote its `200` as soon as the upstream accepted the request,
+    which left a mid-stream failure nowhere to go. Headers are now held back
+    until there is content to send, so a failure before the first word is an
+    ordinary one: another account can still serve the turn.
+
+## 1.0.12
+
+- Client identity headers vary per account instead of sharing the host's
+  values, the way the upstream expects for concurrent use.
+
+## 1.0.11
+
+- **A moment's 503 from the sandbox host no longer costs five minutes of
+  failed requests.** The logs from an affected install told the story: the
+  sandbox host answered one request with 503, was sidelined for five minutes,
+  and every request in that window went to the production host — which
+  refuses this client outright with `RESOURCE_EXHAUSTED`, for every account,
+  with no retry delay. Each of those was read as the account running out, so
+  twelve accounts with quota to spare were put on cooldown in turn and the
+  user saw "Every account is unavailable" until the sandbox host was probed
+  again, at which point everything worked. Two things changed:
+
+  - A 502/503/504 is re-asked of the same host, after one and then two
+    seconds, before the request fails over. The overload clears within
+    seconds in practice, so most requests now never leave the sandbox host.
+
+  - A 429 from the production host while a preferred host is sidelined is
+    recorded as an outage rather than a rate limit: no account goes on
+    cooldown over it, the client is told to retry shortly, and the production
+    host is demoted too — with every host sidelined the configured order
+    applies again, so the next request probes the sandbox host first and is
+    served the moment it is back.
+
+  The 503's own message is now in the log line that demotes a host, so an
+  overloaded host can be told from an overloaded model.
+
+- **A model with no capacity is asked again for longer.** `No capacity
+  available for model claude-opus-4-6-thinking on the server` is the model's
+  pool being full, not the host being unwell, and it comes and goes in
+  bursts. Failing over does nothing for it — every host draws on the same
+  pool — and Copilot Chat does not retry on its own, so the user was left
+  with a "Try again" button. A capacity refusal is now re-asked of the same
+  host after one, two, four and eight seconds, within a fifteen-second budget
+  per request; a generic 5xx keeps the short one-and-two-second schedule.
+
+- **Accounts Google refused are counted apart from rate limits.** "Verify your
+  account to continue" is the account holder's to fix, and the breakdown now
+  lists those accounts as `refused by Google (verify the account)` instead of
+  folding them into "cooling down".
+
+- **A rate limit on the client no longer walks through every account.** The
+  Cloud Code endpoints also meter the caller as a whole — the production host
+  in particular answers `RESOURCE_EXHAUSTED` regardless of which account signs
+  the request. Every 429 was read as that account's, so the rotation spent a
+  doomed request on each signed-in account in turn, put all of them on
+  cooldown, and reported "Every account is unavailable" over a limit no
+  account had earned — twelve accounts, no successful request, and the same
+  wait counting down in every message. Three accounts refused in a row with
+  the same wait are now read as one shared window: the remaining accounts are
+  left untried, the model is held for the wait the upstream asked for, and the
+  message says the limit is the client's rather than an account's.
+
+- **An account whose quota was never read is no longer invisible to the
+  rotation.** A catalog is built from the account's own quota reading, and an
+  account without one had no catalog, so the rotation passed it over silently
+  — "every account" could mean the one or two that had been read. Until its
+  own reading lands, such an account is offered what the other accounts are
+  known to serve, with their quota figures stripped so nothing is mistaken for
+  a reading of it.
+
+- **Quota refreshes are paced.** Every account's quota was refreshed at once on
+  activation and every ten minutes — up to three round trips per account,
+  fired together — and the quota endpoints answered the burst with 429s that
+  left accounts without a reading. Refreshes now run three accounts at a time.
+
+- **The error says how many accounts were actually in the running.** The
+  message now ends with a breakdown such as `[12 accounts: 2 cooling down,
+  9 without quota data, 1 needs sign-in]`, so a rate limit on one account is
+  no longer indistinguishable from a rate limit on twelve.
+
+- **The log says which host is serving.** Traffic drifting onto the
+  production host after the sandbox hosts were demoted is the first thing to
+  look for when every account reads as rate limited, and the log never said
+  it had happened. It now reports each change of serving host, and warns when
+  the host is the one metered per client.
+
+## 1.0.9
+
+- **A spent account is no longer the one every request starts on.** Candidate
+  ordering put the active account first and only skipped accounts that were
+  already cooling down, so the account the user had just watched drop to 0% in
+  the panel still took the first request of every turn, earned a rate limit,
+  and only then let the rotation begin. An account whose quota for the model
+  reads empty is now tried last — demoted rather than dropped, so a stale or
+  missing reading can never leave a request with nowhere to go.
+
+- **A window that closes mid-request is waited out instead of failing the
+  turn.** The short wait that keeps a rate-limit window from surfacing as an
+  error was only consulted before the first account was tried: if every account
+  ran out *during* the request — which is what a burst of parallel turns
+  produces — the last 429 was thrown as-is. The wait is now taken once after
+  the candidates are exhausted too, and the whole selection is re-ordered
+  afterwards.
+
+  `rotation.maxWaitSeconds` now defaults to 60 rather than 15. These endpoints
+  ask for around 30 seconds when they meter an account, so the old budget was
+  shorter than the window it was meant to ride out and never waited at all.
+
+- **A rate limit that outlasts the wait is reported as a wait.** Running out on
+  every account surfaced as the raw `HTTP 429: Resource has been exhausted` and
+  a stack trace in the chat. It now arrives as the sentence that says which
+  model is out and how many seconds to leave it, with the `retry-after` the
+  upstream asked for attached.
+
+- **An account the upstream refuses no longer takes the whole session down.**
+  When one account ran out, the endpoints answered its next request with
+  `HTTP 403: Verify your account to continue.` Three things then went wrong in
+  a row, and together they left every model in every client reporting 403:
+
+  - The rotation stopped at the 403. Only 429 and 401 were treated as "another
+    account could serve this"; a 403 was assumed to fail identically everywhere
+    and was rethrown, so the remaining signed-in accounts were never tried.
+    A 403 is now a per-account refusal like the others — the account is put on a
+    five-minute cooldown and the next one is tried.
+
+  - Every 403 was blamed on the project header. Any 403 on a request carrying
+    `x-goog-user-project` was read as the upstream rejecting that header, and
+    the verdict was remembered for an hour before it had been tested — so an
+    account-level refusal stripped the header off every later request for that
+    project, for every account sharing it. The header is now only dropped for a
+    403 that could plausibly be about it, and the rejection is recorded only
+    once the request sent without it has got past the permission check.
+
+  - The status was handed to the client verbatim. The gateway forwarded an
+    upstream 403 as a 403 `authentication_error`, which is how Claude Code and
+    Codex are told *their own* credentials are bad — so they signed themselves
+    out over a Google account that had merely run out or needed verifying. An
+    upstream 401 or 403 is now reported as a 503 `overloaded_error` carrying the
+    upstream's own message, which clients retry instead of logging out over.
+
+- **"Every account is rate limited" is no longer said about accounts that were
+  not.** The message shown when nothing can serve a model now carries the reason
+  the soonest-recovering account is unavailable, so a refusal that needs the
+  user to verify an account does not send them looking at quotas that were
+  never the problem.
+
+- **An account the upstream refuses no longer takes the whole session down.**
+  When one account ran out, the endpoints answered its next request with
+  `HTTP 403: Verify your account to continue.` Three things then went wrong in
+  a row, and together they left every model in every client reporting 403:
+
+  - The rotation stopped at the 403. Only 429 and 401 were treated as "another
+    account could serve this"; a 403 was assumed to fail identically everywhere
+    and was rethrown, so the remaining signed-in accounts were never tried.
+    A 403 is now a per-account refusal like the others — the account is put on a
+    five-minute cooldown and the next one is tried.
+
+  - Every 403 was blamed on the project header. Any 403 on a request carrying
+    `x-goog-user-project` was read as the upstream rejecting that header, which
+    bought a second doomed round trip without it and then remembered the verdict
+    for an hour — so an account-level refusal stripped the header off every
+    later request for that project, for every account sharing it. The header is
+    now only dropped for a 403 that could plausibly be about it, and the
+    rejection is recorded only once the header-less retry has actually
+    succeeded.
+
+  - The status was handed to the client verbatim. The gateway forwarded an
+    upstream 403 as a 403 `authentication_error`, which is how Claude Code and
+    Codex are told *their own* credentials are bad — so they signed themselves
+    out over a Google account that had merely run out or needed verifying. An
+    upstream 401 or 403 is now reported as a 503 `overloaded_error` carrying the
+    upstream's own message, which clients retry instead of logging out over.
+
+- **"Every account is rate limited" is no longer said about accounts that were
+  not.** The message shown when nothing can serve a model now carries the reason
+  the soonest-recovering account is unavailable, so a refusal that needs the
+  user to verify an account does not send them looking at quotas that were
+  never the problem.
+
+- **A model the upstream has retired is no longer offered.** Google keeps a
+  retired model in `fetchAvailableModels` for a while, quota reading and all, so
+  it looked live in every picker — but generating with it returns the notice
+  "Gemini 3.5 Flash is no longer available. Please switch to Gemini 3.7 Flash"
+  in place of an answer. The same response already names the retired ids in
+  `deprecatedModelIds`; that field was being parsed and stored and then read by
+  nothing. Those ids are now dropped from the quota snapshot, which is the one
+  source the model picker, the accounts panel and the quota pools all build
+  from, so a dead model disappears from all three at once.
+
+  Deliberately not done: forwarding a request for a retired model onto its
+  replacement. The upstream reports what each retirement was replaced by, but
+  silently answering from a different model than the one picked would be
+  invisible in the reply and would spend the other model's quota.
+
+- **What the upstream retires is logged.** `Models retired upstream` (at debug
+  level) lists every id Google reports as deprecated, its replacement, and
+  whether it was among the models offered. A model that stops working without
+  appearing in that list is one this filter cannot catch, and comparing the two
+  is how that gets spotted.
+
+## 1.0.8
+
+- **Requests no longer go to the host that refuses them.** Generate calls were
+  sent to `cloudcode-pa.googleapis.com` first. That host meters this traffic far
+  more tightly than the two alternatives: on accounts sitting at full quota it
+  answers the very first request of a session with `RESOURCE_EXHAUSTED`, and no
+  amount of pacing or account rotation gets around it, because the limit is not
+  the account's. Every account reading 100% in the panel while every request
+  came back 429 was this, and the quota lookups in this same extension had been
+  quietly using the sandbox host first all along. Generate calls now follow the
+  same order — sandbox, then daily, then production as a last resort.
+
+- **The request identifies itself the way the real client does.** The endpoints
+  meter an unrecognised caller much harder than a known one, and several
+  fingerprint fields were wrong or missing:
+
+  - `x-client-name`, `x-client-version`, `x-machine-id` and `x-vscode-sessionid`
+    were not sent at all. VS Code already keeps the right values — `machineId`
+    is stable per install, `sessionId` per window.
+  - `requestId` was a bare UUID; the real client sends
+    `agent/<epoch-millis>/<8 hex>`.
+  - The body's `userAgent` carried the full versioned header string. It is a
+    bare product token: `antigravity` for consumer accounts, `jetski` for
+    managed ones.
+  - The per-account `sessionId` that ties a conversation's turns together
+    upstream was absent. It is an FNV-1a hash of the account id, ported here and
+    checked against an independent implementation of the same hash.
+  - A placeholder project id (`test-project`, `project-id`) is no longer sent as
+    `x-goog-user-project`.
+
+- **The request is ordered so the prompt cache can hit.** Upstream caching
+  matches on a byte prefix, so `contents` — the part that grows every turn — now
+  comes last, after the system instruction, tools and generation config that do
+  not change. Only key order changes; nothing about the request's meaning does.
+
+- **A rate limit no longer fails over to the second host.** Both hosts meter the
+  same account, so the retry was a guaranteed second 429 that doubled the load
+  exactly when there was none left to spend, and it branded a healthy endpoint
+  degraded for five minutes over a per-account condition. Failover is now what
+  the official client does: request timeouts, 404s and server errors only.
+
+- **One exhausted window is no longer punished several times over.** Parallel
+  turns each reported the same rate limit and each counted as a fresh strike, so
+  a burst of three backed an account off for four minutes over a sixty-second
+  window. Only a limit arriving after the previous cooldown has lapsed now
+  counts as a new strike, and a concurrent report can never shorten a wait
+  already in force.
+
+- **The escalating backoff now actually escalates.** Reading a lapsed cooldown
+  deleted it, so the strike count was gone by the time the account was next
+  tried and a genuinely spent account kept backing off by the base thirty
+  seconds forever. Lapsed cooldowns are remembered for ten minutes.
+
+- **The wait Google asks for is read.** These endpoints answer with a
+  `google.rpc.RetryInfo` detail rather than a `retry-after` header, so every
+  rate limit fell back to a blind doubling instead of the delay just supplied.
+  The body is now parsed, and that delay is what the cooldown and the client's
+  `retry-after` are built from.
+
+- **Only one request pays to discover the project header verdict.** The memo
+  that remembers a rejected `x-goog-user-project` was only written once the 403
+  came back, so every turn that started before that answer arrived spent its own
+  doomed round trip. The first request to touch a project now probes it and the
+  rest wait for its answer.
+
+- **Parallel turns are paced per account.** At most three requests wait for
+  upstream acceptance on one account at a time
+  (`antigravityMaestro.maxConcurrentRequestsPerAccount`, 0 to disable). The slot
+  is held only until the request is accepted, so parallel answers still stream
+  concurrently.
+
+- **A short cooldown is waited out instead of failed.** When every account is
+  cooling down and the shortest wait is under fifteen seconds
+  (`antigravityMaestro.rotation.maxWaitSeconds`), the request holds — with a
+  little jitter so queued turns do not resume in lockstep — rather than
+  reporting a brief pause back as an error the client answers with an immediate
+  retry.
+
+- **Claude Code's background model is picked in the apply flow.** Claude Code
+  runs its haiku-class calls in parallel with the main turn, and every slot was
+  wired to the same model. Splitting it off was already possible through
+  `antigravityMaestro.claudeCode.smallFastModel` but only by typing a model id
+  into a settings string. Applying Claude Code now offers the choice directly,
+  with the current one marked and "same as the main model" as the first row.
+
+## 1.0.6
+
+- **Empty or whitespace display names correctly fall back to the model id.** When
+  an upstream model object reported an empty or whitespace-only `displayName` and
+  no derived name was recognised, nullish coalescing stopped at the empty string
+  instead of falling back to the authoritative `modelId`. Empty display names are
+  now treated as undefined, allowing the fallback chain to complete properly.
+
+## 1.0.5
+
+- **The model id is no longer appended to the name.** 1.0.3 added it where the
+  upstream label disagreed with the id, and 1.0.4 stopped it repeating — but the
+  premise was wrong. Every surface that shows a model name already shows its id
+  beside it: the model pickers list both, and the panel prints the id under each
+  card. So the name carried a second copy of what was on screen already, which
+  read as a stutter. A unique label is now kept as it is; the id speaks for
+  itself. Resolving a label that several ids share, which is what made the list
+  readable in the first place, is unchanged.
+
+## 1.0.4
+
+- **The appended model id is no longer repeated.** 1.0.3 started showing the id
+  next to a label that disagrees with it, but naming runs three times over the
+  same data — the quota service stores the name it produced back onto the model,
+  and the catalog and the panel each name that stored list again. Every pass
+  appended the id afresh, so the model picker read
+  `Gemini 3.5 Flash (High) · gemini-3-flash-agent · gemini-3-flash-agent`.
+  Naming is now idempotent: an id already appended is recognised and left alone.
+
+## 1.0.3
+
+- **A rate limited endpoint is not retried on every request.** The primary Cloud
+  Code host can be exhausted while the fallback still serves, and the failover
+  worked — but nothing remembered it, so every single request paid a doomed
+  round trip to the dead host before succeeding on the second one. Logs filled
+  with `failed (HTTP 429), trying the next endpoint` for requests that were
+  actually completing. A host that fails while a later one succeeds is now
+  demoted for five minutes; it is reordered rather than dropped, so it still
+  serves when everything else is down, and the lapsing TTL doubles as a probe
+  that picks it back up once it recovers.
+- **The per-model limits table matches the ids the upstream serves.** It had
+  drifted: four entries named models that are never sent (`gemini-3.5-flash-high`,
+  `gemini-3.5-flash-medium`, `gemini-3-pro-image`, `claude-sonnet-4-6-thinking`),
+  while fourteen ids that are sent had none — `gemini-3-flash-agent`, the whole
+  3.6/3.7 Flash family, `claude-sonnet-4-6` and the 2.5 models all fell back to
+  the generic default. These limits are a fallback (the upstream reports its own
+  `thinkingBudget` per model, and that still wins), but the fallback is what
+  applies whenever it does not.
+- **A model name that disagrees with its id shows the id too.** The upstream
+  offers `gemini-3-flash-agent` under the label "Gemini 3.5 Flash (High)", so the
+  list claimed a version the request would never ask for. The label is kept — it
+  is what the model is findable by — and the id is appended where the two name
+  different models. A differing effort alone is left alone, since the id already
+  spells that out.
+
+## 1.0.2
+
+- **Tool call ids survive the round trip in Copilot Chat too.** 1.0.1 fixed this
+  for the gateway the CLI agents talk to, but the in-process provider behind the
+  Copilot model picker still dropped the id in both directions: the id the
+  upstream sent was replaced with a locally generated one, and the calls sent
+  back carried none at all. So the same `tool_use.id: Field required` failure
+  survived on the one path most people use, on every turn after the first tool
+  call.
+
+## 1.0.1
+
+Fixes a request storm: a single prompt could loop until the account's quota was
+gone.
+
+- **Tool call ids survive the round trip.** The Claude models are served by
+  translating the request back into the Anthropic format, and that translation
+  rejects a `tool_use` block with no id. The id was being dropped, so every turn
+  after the first tool call failed with `tool_use.id: Field required` — for good.
+  The client retried, resending the whole conversation each time.
+- **An account that is out of headroom is left alone.** Once every account was
+  cooling down the lease fell back to the active one anyway, so each retry
+  earned a fresh rate limit and spent more quota. It now reports the wait
+  instead. Without a `retry-after` the backoff starts at 30s and doubles per
+  consecutive rate limit rather than jumping straight to the configured maximum,
+  and a successful request clears it.
+- **Errors say whether they are worth retrying.** The gateway returns
+  `invalid_request_error` for a malformed request instead of `api_error`, sets
+  `x-should-retry: false` on what cannot succeed twice, and passes `retry-after`
+  through on rate limits, so clients back off instead of hammering.
+- **The rejected project header is remembered.** It was re-sent on every request,
+  costing a doomed 403 round trip each time before the retry without it.
+
+## 1.0.0
+
+First public release. Everything below this line is the development history that
+led to it; no version before this one was published.
+
+What the extension does, in one paragraph: sign in with as many Google accounts
+as you have, and Antigravity's models become available in GitHub Copilot Chat,
+Claude Code and OpenAI Codex at once. The panel tracks each account's remaining
+quota per model, serves every request from whichever account can afford it, and
+hands off to the next one when a limit is hit. Refresh tokens live in VS Code
+SecretStorage. Every config file the extension writes is backed up first, and
+**Restore** puts each agent back on its own provider.
+
+Included in this release:
+
+- **Account pool** with automatic rotation, drag-to-reorder fallback order, and
+  per-account quota telemetry: remaining percentage per model, reset countdowns,
+  subscription tier, and both the 5-hour and weekly rolling windows.
+- **Copilot Chat** as a first-class language model provider, in-process, with
+  tool calling, vision, thinking content and prompt caching.
+- **Claude Code and Codex** through a loopback gateway that speaks the Anthropic
+  and OpenAI wire formats, with each agent's own config rewritten to point at it.
+- **Commit messages** on a model of your choosing rather than Copilot credits.
+- **Usage accounting**: requests and input / thinking / output tokens per account
+  and per model, with retained quota history.
+- A panel built on the same design system as OpenRouter Maestro, so the two
+  extensions read as one family. It is responsive from a 250px docked sidebar up
+  to a full editor tab, honours `prefers-reduced-motion`, and follows the
+  editor's light or dark theme.
+
+## 0.1.25
+
+- The panel's font stack survives a host that does not define
+  `--vscode-font-family`. The fallback list sat outside `var()`, so a missing
+  variable invalidated the whole declaration and the panel dropped all the way
+  back to the browser's default serif.
+- An account card's buttons sit on the header line rather than under it, which
+  closes the band of dead space that ran across the middle of every card. On a
+  narrow sidebar they still take their own row.
+- Quota trend cards fill the row they are given. `auto-fill` kept reserving the
+  empty tracks, so two accounts on a wide editor tab were both squeezed to the
+  minimum column width and had their addresses cut short.
+
+## 0.1.24
+
+- The panel is rebuilt on the same design system as OpenRouter Maestro, so the
+  two extensions read as one family: the same surface ramp and spacing scale,
+  the same pill and card shapes, the same agent identity colours. Antigravity's
+  own mark supplies the accent, cyan into violet.
+- It has a brand header now. The mark and the wordmark sit above a tab bar that
+  carries a count on each tab, and the three panel-wide actions moved up there
+  as icon buttons, which is a whole row of the old toolbar reclaimed.
+- Integrations are cards with a coloured left edge, one colour per agent, so
+  the list is scannable before it is read. The gateway URL sits on its own
+  monospace line rather than being appended to the row's title.
+- A collapsed account card leads with its tightest quota as a figure, then one
+  row per model family with a bar and a percentage. It used to be a wrap of
+  long text chips that cost three lines to say what a bar says in one.
+- The quota trend sparkline is fixed. At 100% the line sat exactly on the edge
+  of its viewBox and half the stroke was clipped, so a full account drew what
+  looked like a horizontal rule. The chart has vertical padding and a frame now.
+- Token counts are colour-coded per kind and set in the editor's monospace face,
+  and a light theme gets a matching surface ramp instead of a black rectangle.
+
+## 0.1.23
+
+- The Input and Thinking columns are visible again. Six columns of a full-width
+  table never fit a docked sidebar, and the body hid the overflow rather than
+  scrolling it, so the right-hand counts left the panel with no way to reach
+  them. The table now sits in its own scroll container, and below 560px it
+  stops being a table at all: each record folds into a card with the model on
+  top and the four counts as a labelled strip underneath. Counts past five
+  figures are shortened, with the exact figure in the cell's tooltip.
+- Account cards and integration rows stop colliding with themselves. Both were
+  a single non-wrapping row carrying five things, so on a 250px sidebar the
+  three buttons squeezed the email down to an ellipsis. Both are grids now, and
+  the buttons drop to their own line when there is no room for them beside the
+  name. The gateway URL moved onto its own line for the same reason: appended
+  to the row's title, it was what pushed the rest of the list out of shape.
+- Colour comes from the running theme. The panel had a hardcoded indigo accent
+  and a neon quota palette tuned for dark backgrounds; it now reads
+  `focusBorder` and the theme's chart colours, so a light theme gets a green it
+  can actually show.
+- The card list animates in once per session instead of on every render. The
+  list is rebuilt whenever a card is expanded, collapsed or dropped, and
+  replaying the entrance each time made the panel look like it was reloading
+  itself on every click.
+- Interaction polish: buttons answer a press, keyboard focus is visible on
+  every control, the status dots stopped pulsing, and the outer glows are gone.
+  `prefers-reduced-motion` is honoured, and hover effects no longer fire on
+  touch input.
+
+## 0.1.22
+
+- The commit-message model is applied for real. Copilot resolves
+  `chat.utilitySmallModel` through `lm.selectChatModels`, which asks this
+  extension for its model list — and once the models had been withdrawn from
+  Copilot that list was empty, so every commit message fell back to Copilot's
+  own quota while the panel claimed otherwise. Picking a model now publishes
+  them again, and the pick is verified against `lm.selectChatModels` before the
+  panel says it took.
+- A commit-message model the upstream has stopped offering is moved onto the
+  nearest one still available. Model ids come from live quota data and rotate;
+  a stale id resolved to nothing and Copilot fell back silently.
+- Restoring Copilot clears the commit-message setting as well — with the models
+  withdrawn it could only name something Copilot cannot reach.
+- The panel's commit-message row separates "in use" from "configured but
+  unreachable" instead of showing both as active.
+
+## 0.1.21
+
+- The `antigravityMaestro.toolDriverModel` split from 0.1.20 is removed. Moving
+  the tool declarations onto a cheaper model also moved the decision of which
+  tool to call, which in agent work is the part worth paying for. Turns go to
+  the model you picked, whole, as they did before. Trimming unused tool sets in
+  Copilot's Tools picker saves the same tokens without that trade.
+
+## 0.1.19
+
+- Token counters are merged across the response instead of taking the last
+  chunk whole. Gemini stops mentioning a counter once it stops moving — thinking
+  tokens are reported while the model thinks and absent from the chunks after —
+  so the final chunk could erase a figure that had already been reported. The
+  highest value seen for each counter is kept, which is the final one.
+- What the upstream reported is logged at `debug`, so a zero in the usage table
+  can be told apart from a number that never arrived.
+
+## 0.1.18
+
+- The `debug` tool log lists declarations heaviest first, with the size of each.
+  Tool declarations are most of what an agent turn costs — 106KB of a 127KB
+  prompt in one measured case — and the size order is the order worth switching
+  tool sets off in.
+
+## 0.1.17
+
+- The usage table has a Thinking column. Thinking tokens were being recorded but
+  never shown, so a thinking model's Output column read far below what the turn
+  actually produced — 134 output tokens next to several thousand spent thinking.
+  Input and Output are unchanged; the number that was missing is now beside them.
+
+## 0.1.16
+
+- Every request logs what it is made of: `messages=3, tools=20, prompt~51KB
+  (tools 9KB, attachments 0KB)`. A one-word question that costs 50,000 tokens is
+  usually carrying an attached file, and the totals say which part to trim
+  before the next turn.
+
+## 0.1.15
+
+- Choosing a model for commit messages now writes both `chat.utilityModel` and
+  `chat.utilitySmallModel`. VS Code has two utility model settings — one for
+  small/fast background flows, one for the rest — and which of them a flow uses
+  is decided inside Copilot. Only the small one was being set, so
+  "Generate Commit Message" kept running on Copilot's own model and spending
+  Copilot credits. Restore clears each of them, and still only when it holds the
+  value this extension wrote.
+- The picker says what that model is for: it also answers Copilot's other
+  background flows, chat titles included, so a cheap model belongs there.
+
+## 0.1.14
+
+- The model picker shows the quota of the account the request will run on, and
+  nothing else. Printing a second account's percentage and email beside it read
+  as the quota of the model being picked; a model the active account cannot
+  serve now says so instead of borrowing a number.
+- Names follow the Antigravity client again where they can. 0.1.12 derived every
+  name from the model id, which renamed models that were labelled correctly. A
+  label the upstream uses for exactly one model is now kept as-is — that is the
+  name the client shows and the one worth searching for — and only a label
+  shared by several ids (three of them came back as "Gemini 3.1 Flash Lite")
+  falls back to the name derived from the id.
+- Each quota refresh logs, at `debug`, what the upstream offered: model id, the
+  label it came with, the name it is shown under and the percentage left. A
+  model missing from the list is missing from the account's quota response —
+  this is how to tell that apart from one listed under an unexpected name.
+
+## 0.1.13
+
+- The panel no longer looks like it reloads itself every time a card is touched.
+  Quota bars grew from zero on every render, so expanding a card or dropping a
+  dragged account replayed the whole animation. They animate once, on the first
+  paint of a session, and land silently after that.
+- The expand indicator is a caret that rotates when a card opens. It was a
+  glyph that renders as a small dot in most panel fonts, which read as a stray
+  mark next to the drag handle rather than as a control.
+
+## 0.1.12
+
+- Model names are built from the model id instead of the label the upstream
+  reports. Those labels had drifted: three different ids all came back as
+  "Gemini 3.1 Flash Lite", so the list read as duplicates and a model could not
+  be found by name. `gemini-3.5-flash-high` is now **Gemini 3.5 Flash (High)**,
+  `gemini-3.7-flash-tiered` is **Gemini 3.7 Flash (Tiered)**, and
+  `claude-opus-4-6-thinking` is **Claude Opus 4.6 (Thinking)** — in the panel,
+  the status bar and every model picker.
+- Picking a model shows what is left on the account the request will actually
+  run on. The picker merges every account and keeps the best quota per model,
+  and printing that alone read as "100% quota left" while the active account sat
+  at 17%. It now reads `17% quota left · 100% on other@gmail.com`, so a model
+  about to run out is visible before it is chosen.
+- The usage trend is per vendor family. One "lowest model quota" number said 17%
+  for an account whose Gemini models were at 98% — the tightest family stood in
+  for the whole account. Each card now draws a line per family with a legend
+  underneath: Claude 17%, Gemini 98%, GPT-OSS 17%.
+- Accounts can be dragged into a new order in the panel. That order is the order
+  rotation falls back through, so it decides which account backs up which.
+
+## 0.1.11
+
+- Claude models answer again in Copilot Chat. Every request carrying the
+  editor's tools failed with `tools.4.custom.input_schema: JSON schema is
+  invalid`, and tool 4 was `edit_notebook_file`, whose `newCode` argument is
+  declared as a union:
+
+      "newCode": { "anyOf": [ { "type": "string" }, { "type": "array" } ] }
+
+  A union node names no type of its own. Gemini's schema proto defaults an
+  absent type to TYPE_UNSPECIFIED and accepts it, but the conversion the Cloud
+  Code endpoints run for Claude carries that through to Anthropic, which
+  validates the schema and rejects the tool — which is why the same request
+  worked on Gemini models and never on Claude.
+
+  A union now collapses onto the node it was declared on: the first member with
+  a usable type wins and the node keeps its description. `oneOf` collapses the
+  same way instead of being dropped. Nothing untyped is sent any more — a type
+  is otherwise recovered from the node's shape (`properties` → object, `items`
+  → array, a string `enum` → string), an array without `items` gets string
+  elements rather than an open schema, and a node with nothing to recover a
+  type from is dropped along with any `required` entry naming it.
+
+## 0.1.10
+
+- The rejected-tool log added in 0.1.9 never printed: an escape in its pattern
+  had been written as a literal control character, so the pattern matched
+  nothing and a failing request looked exactly like one that sends no tools at
+  all. The pattern is fixed and now covered by a test against the real 400 text.
+- That log no longer stays quiet when there is nothing to dump. It always
+  reports the rejected index, how many declarations went out and their names,
+  and adds the offending schema when the index is one of them — if it is not,
+  the count alone says the tool came from somewhere upstream.
+- The per-request log line carries the tool count: `messages=5, tools=12`.
+
+## 0.1.9
+
+- A tool schema the upstream rejects is now written to the log with the request
+  that failed: `Upstream rejected tool 4 (name): {…}`. The 400 names the tool by
+  index only, which says nothing on its own, and the full declaration list is
+  only logged at `debug` — a level that has to be set before the failure it is
+  meant to explain. If the reported index is past the declarations that were
+  sent, the log says so, because that would mean the rejected tool is not one of
+  this extension's.
+
+## 0.1.8
+
+- Tool calling works again on Claude models in Copilot Chat. A request carrying
+  the editor's tools came back as `HTTP 400 ... tools.N.custom.input_schema:
+  JSON schema is invalid. It must match JSON Schema draft 2020-12`, which
+  killed the whole answer.
+
+  Tool schemas were being filtered into Gemini's dialect, and for Claude the
+  upstream converts that same declaration into Anthropic's `input_schema`,
+  where it is validated as plain JSON Schema. `nullable` (OpenAPI, emitted for
+  a `["string", "null"]` union), `propertyOrdering` (Gemini-only) and anything
+  malformed that used to pass through unchecked — a `type` that is not a JSON
+  Schema type name, a non-numeric `minimum` — are rejected there. Only a tool
+  whose schema happened to contain one was affected, so it failed on some
+  conversations and not others.
+
+  The filter now emits the intersection of both dialects: every keyword is
+  validated, `type` is normalised against the seven JSON Schema type names,
+  `required` is resolved against the properties that survived, and an array
+  declaration always carries `items` — which Gemini needed anyway.
+- Tool declarations are written to the log at `debug` level, with the index the
+  upstream reports on rejection.
+
+## 0.1.7
+
+- **Commit messages** have a row of their own in the panel: pick the model that
+  writes them, and **Restore** hands them back to Copilot.
+
+  "Generate Commit Message" runs on Copilot's small utility model, so it was
+  spending Copilot credits — and failing outright once they ran out, no matter
+  which model was picked for chat. The `chat.byokUtilityModelDefault` that
+  **Set up** writes only redirects those tasks after Copilot has seen a BYOK
+  model answer in chat, which a commit message asked for before that never
+  satisfies. Naming the model outright skips the question entirely.
+
+  Restore only clears the setting if it still holds the value this extension
+  wrote, so a choice made by hand since is left alone.
+
+## 0.1.6
+
+- The Accounts panel no longer flickers through a whole answer. Gemini repeats
+  its running token totals on nearly every chunk of a stream, and each one was
+  being written to the usage history — a disk write and a full panel repaint,
+  hundreds of times per reply. Only the final total is recorded now, once the
+  response ends, which is the number those chunks were counting towards anyway.
+  Cancelled and failed requests still record what they spent.
+- Redraws are coalesced, so refreshing several accounts at once paints the
+  panel a single time instead of once per account.
+
+## 0.1.5
+
+Restores everything the 0.1.4 merge quietly reverted — it had resolved every
+conflict in favour of an older branch.
+
+- Copilot Chat has its row back, with **Set up** and **Restore**. Both commands
+  and the publish flag they persist had been dropped outright, so the panel
+  could not offer either.
+- Codex no longer reports a missing `ANTIGRAVITY_MAESTRO_API_KEY` on every
+  request. The key is handed to the extension host on activation again; without
+  that call not even a reload could help.
+- "Use model" works for Claude Code again. The command name was being built by
+  string interpolation from the webview's target id, which spells it
+  `claude-code.apply` — not the `claudeCode.apply` that is registered.
+- Account cards fold open and shut again, and now **start collapsed**, so
+  several accounts read at a glance. A collapsed card keeps one chip per quota
+  pool; opening it shows the pool cards, and the full per-model list stays
+  behind its link.
+- `reloadOnModelChange` is back in settings — `prompt` (default), `auto` or
+  `never` — deciding whether applying or restoring a model offers the reload
+  that Claude Code and Codex need to see the change.
+
+## 0.1.4
+
+- Applying or restoring a model in Claude Code or Codex offers to reload the
+  window. Both read their wiring once at start-up, so until now the change only
+  landed when VS Code was next restarted.
+- Claude Code can be force-restored from its backup when its settings file has
+  been edited out from under the extension.
+- Redrawn panel: quota bars animate, rows carry their state as a coloured
+  label, and the marks — icon, activity bar glyph, empty-state logo — are one
+  family.
+- `.vs/` and stray `.vsix` files no longer ship inside the package.
+
+## 0.1.3
+
+- Fixed HTTP 400 "Unknown name $comment / enumDescriptions" on every Copilot
+  request with tools. Tool schemas are now filtered through one shared
+  allow-list of the keywords the upstream accepts, instead of two drifting
+  deny-lists that could not know about annotations invented later.
+- Quota pools are keyed by vendor as well as window, so an untouched account —
+  every model at 100% on one window — no longer collapses Claude, Gemini and
+  GPT-OSS into a single row.
+- Copilot Chat has a **Restore** button: the models are withdrawn from the
+  picker and the one global setting Set up may have written is put back.
+- Removed the account filter box.
+
+## 0.1.2
+
+- Fixed the Copilot Chat model picker never listing any Antigravity models. The
+  provider announced its model-list changes under the wrong event name, so
+  VS Code only ever read the list once — at activation, before any account had
+  loaded its quota.
+- The panel now has a Copilot Chat row of its own: how many models are
+  published, and a **Set up** button that opens the model picker and lets
+  Copilot run its utility tasks on a bring-your-own model.
+- The gateway row says what it is for, and its buttons explain themselves.
+
+## 0.1.1
+
+- Fixed "Use model" in the Accounts panel failing for Claude Code with
+  `command 'antigravityMaestro.claude-code.apply' not found`.
+- Codex no longer needs a full VS Code restart to see its gateway key — the key
+  is published to the extension host on activation, so a window reload is
+  enough, and applying a model now offers that reload.
+- Accounts collapse to a single row with their headline quotas; only the active
+  one starts open, and there is a collapse/expand-all toggle.
+- Quotas are listed once per pool instead of once per model, with the full
+  per-model breakdown behind "show all models".
+- Long reset windows read in days ("6d 22h") and switch to hours under a day.
+- The status bar names its numbers: "Opus 82% · Gemini 97%" per vendor family
+  instead of one unlabelled lowest quota, with every pool in the tooltip.
+- New mark: a model held aloft over the field it presses down. Ships as the
+  monochrome activity bar icon, the marketplace logo and a panel logo.
+- Editor junk under .vs/ no longer ends up inside the packaged extension.
+
+## 0.1.0
+
+Initial release.
+
+- Sign in with multiple Google accounts (loopback OAuth); refresh tokens stored in SecretStorage.
+- Per-model quota, reset countdowns, subscription tier and rolling quota windows per account.
+- Active account switching from the status bar, the panel and the command palette.
+- Automatic rotation to another account on rate limits, with per-model cooldowns.
+- Antigravity models exposed to Copilot Chat as a native language model provider.
+- Local gateway on 127.0.0.1 speaking Anthropic Messages, OpenAI Responses and Chat Completions.
+- Claude Code and Codex integrations that rewrite their config files (with backups) and restore them.
+- Token usage and quota history.
