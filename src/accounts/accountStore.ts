@@ -2,12 +2,12 @@ import * as vscode from 'vscode';
 import { randomToken } from '../utils/ids';
 import { AccountMetadata, RetiredModel, StoredSession } from './types';
 
-const ACCOUNTS_KEY = 'chatgptMaestro.accounts';
-const ACTIVE_ACCOUNT_KEY = 'chatgptMaestro.activeAccountId';
-const SESSION_PREFIX = 'chatgptMaestro.session.';
-const RETIRED_MODELS_KEY = 'chatgptMaestro.retiredModels';
-const WINDOW_KEY = 'chatgptMaestro.windowKey';
-const WINDOW_ACCOUNTS_KEY = 'chatgptMaestro.windowAccounts';
+const ACCOUNTS_KEY = 'chatgpt.accounts';
+const ACTIVE_ACCOUNT_KEY = 'chatgpt.activeAccountId';
+const SESSION_PREFIX = 'chatgpt.session.';
+const RETIRED_MODELS_KEY = 'chatgpt.retiredModels';
+const WINDOW_KEY = 'chatgpt.windowKey';
+const WINDOW_ACCOUNTS_KEY = 'chatgpt.windowAccounts';
 
 /** A window not heard from in this long is dropped from the routing table. */
 const WINDOW_ROUTE_TTL_MS = 30 * 24 * 60 * 60_000;

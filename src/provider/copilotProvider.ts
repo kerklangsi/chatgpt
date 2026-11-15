@@ -44,7 +44,7 @@ export class ChatGPTChatProvider implements vscode.LanguageModelChatProvider {
       const info: vscode.LanguageModelChatInformation = {
         id: m.id,
         name: m.displayName,
-        family: 'ChatGPT Maestro',
+        family: 'ChatGPT',
         version: '1.0',
         maxInputTokens: m.maxInputTokens,
         maxOutputTokens: m.maxOutputTokens,

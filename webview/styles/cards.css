@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   Antigravity Maestro — components: hero, gauges, rotation rows, windows,
+   ChatGPT — components: hero, gauges, rotation rows, windows,
    model list, connections, usage.
    Emphasis budget: only the serving account gets the gradient edge light,
    ambient glow and glowing ring tips. Everything else is quiet glass.
@@ -7,19 +7,16 @@
 
 /* ── Paint: one variable per meaning ─────────────────────────────────────── */
 
-.paint-claude, .fam-claude { --c: var(--claude); }
-.paint-gemini, .fam-gemini { --c: var(--gemini); }
 .paint-gpt, .fam-gpt { --c: var(--gpt); }
+.paint-o-series, .fam-o-series { --c: var(--o-series); }
 .paint-other, .fam-other { --c: var(--other); }
 .paint-warn { --c: var(--warn); }
 .paint-low { --c: var(--low); }
 
-#g-claude .s0 { stop-color: color-mix(in oklch, var(--claude), var(--canvas) 38%); }
-#g-claude .s1 { stop-color: var(--claude); }
-#g-gemini .s0 { stop-color: color-mix(in oklch, var(--gemini), var(--canvas) 38%); }
-#g-gemini .s1 { stop-color: var(--gemini); }
 #g-gpt .s0 { stop-color: color-mix(in oklch, var(--gpt), var(--canvas) 38%); }
 #g-gpt .s1 { stop-color: var(--gpt); }
+#g-o-series .s0 { stop-color: color-mix(in oklch, var(--o-series), var(--canvas) 38%); }
+#g-o-series .s1 { stop-color: var(--o-series); }
 #g-other .s0 { stop-color: color-mix(in oklch, var(--other), var(--canvas) 38%); }
 #g-other .s1 { stop-color: var(--other); }
 #g-warn .s0 { stop-color: color-mix(in oklch, var(--warn), var(--canvas) 30%); }
@@ -839,7 +836,6 @@ body.vscode-light .insight:not(.tone-warn):not(.tone-low) {
   color: var(--text-1);
 }
 
-.fam-dot.fam-claude,
 .wgroup .fam-dot {
   flex-shrink: 0;
 }

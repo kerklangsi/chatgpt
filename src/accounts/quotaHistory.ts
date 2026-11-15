@@ -3,10 +3,10 @@ import { Logger } from '../utils/logger';
 import { modelFamily } from './quotaPools';
 import { QuotaSample, QuotaSnapshot, UsageBucket, UsageSample } from './types';
 
-const QUOTA_SAMPLES_KEY = 'antigravityMaestro.quotaSamples';
-const USAGE_BUCKETS_KEY = 'antigravityMaestro.usageHours';
+const QUOTA_SAMPLES_KEY = 'chatgpt.quotaSamples';
+const USAGE_BUCKETS_KEY = 'chatgpt.usageHours';
 /** Per-request samples written by earlier versions; folded into hours once, then removed. */
-const LEGACY_USAGE_SAMPLES_KEY = 'antigravityMaestro.usageSamples';
+const LEGACY_USAGE_SAMPLES_KEY = 'chatgpt.usageSamples';
 
 /** Keep the stored quota readings bounded so globalState stays small. */
 const MAX_QUOTA_SAMPLES = 2000;

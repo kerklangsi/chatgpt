@@ -10,12 +10,14 @@
     <link rel="stylesheet" href="{{variablesCssUri}}" />
     <link rel="stylesheet" href="{{mainCssUri}}" />
     <link rel="stylesheet" href="{{cardsCssUri}}" />
-    <title>ChatGPT Maestro</title>
+    <title>ChatGPT</title>
   </head>
   <body>
     <svg class="svg-defs" width="0" height="0" aria-hidden="true" focusable="false">
       <defs>
         <linearGradient id="g-gpt" x1="0" y1="1" x2="1" y2="0"><stop class="s0" offset="0" /><stop class="s1" offset="1" /></linearGradient>
+        <linearGradient id="g-o-series" x1="0" y1="1" x2="1" y2="0"><stop class="s0" offset="0" /><stop class="s1" offset="1" /></linearGradient>
+        <linearGradient id="g-other" x1="0" y1="1" x2="1" y2="0"><stop class="s0" offset="0" /><stop class="s1" offset="1" /></linearGradient>
         <linearGradient id="g-warn" x1="0" y1="1" x2="1" y2="0"><stop class="s0" offset="0" /><stop class="s1" offset="1" /></linearGradient>
         <linearGradient id="g-low" x1="0" y1="1" x2="1" y2="0"><stop class="s0" offset="0" /><stop class="s1" offset="1" /></linearGradient>
         <linearGradient id="cgmMark" x1="0" y1="0" x2="1" y2="1">
@@ -37,7 +39,7 @@
             <circle cx="12" cy="12" r="3" fill="#10A37F" />
           </svg>
           <div class="brand-text">
-            <span class="brand-name">ChatGPT <span class="brand-sub">Maestro</span></span>
+            <span class="brand-name">ChatGPT</span>
             <button id="health" class="health hidden" type="button" data-key="health" title="Show connections">
               <i class="health-dot"></i><span id="health-text"></span>
             </button>
@@ -45,10 +47,9 @@
         </div>
 
         <div class="brand-actions">
-          <button id="add-token" class="icon-btn" aria-label="Paste session token or cookie" title="Paste session token or cookie">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          <button id="collapse-all" class="icon-btn" aria-label="Collapse all accounts" title="Collapse all">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2.5" y="2.5" width="11" height="11" rx="2.5" /><path d="M5.5 8h5" />
             </svg>
           </button>
           <button id="refresh-all" class="icon-btn" aria-label="Refresh quotas" title="Refresh quotas">
@@ -71,9 +72,6 @@
         <button id="tab-accounts" class="seg active" data-tab="accounts" role="tab" aria-selected="true" aria-controls="accounts-tab">
           Accounts <span class="seg-count" id="accounts-count"></span>
         </button>
-        <button id="tab-coordinator" class="seg" data-tab="coordinator" role="tab" aria-selected="false" aria-controls="coordinator-tab">
-          Coordinator <span class="seg-count" id="coordinator-count"></span>
-        </button>
         <button id="tab-usage" class="seg" data-tab="usage" role="tab" aria-selected="false" aria-controls="usage-tab">
           Usage <span class="seg-count" id="usage-count"></span>
         </button>
@@ -95,7 +93,7 @@
 
         <section class="section" id="rotation-section">
           <div class="section-head">
-            <span class="eyebrow">Accounts</span>
+            <span class="eyebrow">Rotation</span>
             <span class="section-meta" id="accounts-meta"></span>
           </div>
           <div id="accounts" class="rotation"></div>
@@ -118,62 +116,7 @@
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9" /></svg>
               Log in with Browser
             </button>
-            <button id="add-token-empty" class="btn btn-cta" style="background: rgba(255,255,255,0.08); border: 1px solid var(--line);">
-              Paste Session Token / Cookie
-            </button>
           </div>
-        </div>
-      </section>
-
-      <!-- ── Coordinator Tab ──────────────────────────────────────────────── -->
-      <section id="coordinator-tab" class="hidden" role="tabpanel" aria-labelledby="tab-coordinator">
-        <div style="padding: 12px 14px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <div>
-              <span class="eyebrow">Agent Coordinator</span>
-              <p style="font-size: 12px; color: var(--text-2); margin-top: 2px;">
-                Exchange and delegate tasks across all available models (.agent-coordinator/tasks.json).
-              </p>
-            </div>
-            <button id="btn-create-task" class="btn btn-primary" style="font-size: 12px; padding: 4px 10px;">
-              + New Task
-            </button>
-          </div>
-
-          <!-- New Task Form (collapsible) -->
-          <div id="new-task-form" class="glass hidden" style="padding: 12px; margin-bottom: 14px; border-radius: 8px;">
-            <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px;">Create Coordinator Task</div>
-            <input id="task-title-input" type="text" placeholder="Task title..." style="width: 100%; padding: 6px 8px; margin-bottom: 8px; background: rgba(0,0,0,0.25); border: 1px solid var(--line); color: var(--text-1); border-radius: 4px;" />
-            <textarea id="task-desc-input" rows="3" placeholder="Task description, file scope, acceptance criteria..." style="width: 100%; padding: 6px 8px; margin-bottom: 8px; background: rgba(0,0,0,0.25); border: 1px solid var(--line); color: var(--text-1); border-radius: 4px; font-family: inherit; font-size: 12px;"></textarea>
-            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-              <select id="task-model-select" style="flex: 1; padding: 6px 8px; background: rgba(0,0,0,0.25); border: 1px solid var(--line); color: var(--text-1); border-radius: 4px; font-size: 12px;">
-                <option value="">Assignee Model (Optional)</option>
-              </select>
-              <select id="task-priority-select" style="width: 90px; padding: 6px 8px; background: rgba(0,0,0,0.25); border: 1px solid var(--line); color: var(--text-1); border-radius: 4px; font-size: 12px;">
-                <option value="normal">Normal</option>
-                <option value="high">High</option>
-                <option value="low">Low</option>
-              </select>
-            </div>
-            <div style="display: flex; justify-content: flex-end; gap: 8px;">
-              <button id="btn-cancel-task" class="btn" style="font-size: 12px; padding: 4px 10px;">Cancel</button>
-              <button id="btn-submit-task" class="btn btn-primary" style="font-size: 12px; padding: 4px 10px;">Create Task</button>
-            </div>
-          </div>
-
-          <!-- Tasks List -->
-          <div class="section-head" style="margin-top: 10px;">
-            <span class="eyebrow">Task Queue</span>
-            <span id="tasks-count-meta" class="section-meta">0 tasks</span>
-          </div>
-          <div id="coordinator-tasks-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;"></div>
-
-          <!-- Available Models Section -->
-          <div class="section-head" style="margin-top: 14px;">
-            <span class="eyebrow">Available Models in VS Code</span>
-            <span id="models-count-meta" class="section-meta">0 models</span>
-          </div>
-          <div id="available-models-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
         </div>
       </section>
 

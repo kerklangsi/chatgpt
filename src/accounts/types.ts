@@ -13,9 +13,8 @@ export interface ModelQuota {
   maxOutputTokens?: number;
   recommended?: boolean;
   /**
-   * Position in the model list the Antigravity client itself offers
-   * (`agentModelSorts`), or undefined for a model it does not show — one kept
-   * for another role, or one whose time has run out but is still reported.
+  * Position in ChatGPT's model list, or undefined when the model is
+  * reported by quota data but is not in the configured catalog.
    */
   agentOrder?: number;
 }
@@ -52,7 +51,7 @@ export interface AccountMetadata {
   name?: string;
   picture?: string;
   subscriptionTier?: 'free' | 'plus' | 'team' | 'pro' | string;
-  authMethod: 'browser' | 'session_token';
+  authMethod: 'browser' | 'session_token' | 'oauth';
   addedAt: number;
   expiresAt?: number;
   needsReauth?: boolean;
@@ -63,6 +62,7 @@ export interface AccountMetadata {
 /** Stored secret session credentials in SecretStorage. */
 export interface StoredSession {
   accessToken: string;
+  refreshToken?: string;
   sessionToken?: string;
   cookies?: string;
   expiresAt: number;
@@ -79,36 +79,6 @@ export interface RetiredModel {
 export interface AccessToken {
   token: string;
   expiresAt: number;
-}
-
-/**
- * Task representation compatible with local-agent-coordinator (.agent-coordinator/tasks.json).
- */
-export interface CoordinatorTask {
-  id: string;
-  title: string;
-  description: string;
-  assignee?: string | null;
-  priority?: 'low' | 'normal' | 'high';
-  status: 'open' | 'claimed' | 'blocked' | 'done';
-  result?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface CoordinatorMessage {
-  task_id: string;
-  from_agent: string;
-  message: string;
-  created_at: string;
-}
-
-export interface AvailableModelInfo {
-  id: string;
-  vendor: string;
-  family: string;
-  name: string;
-  maxInputTokens?: number;
 }
 
 /**

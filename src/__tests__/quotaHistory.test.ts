@@ -17,9 +17,9 @@ const resolveFilename = (Module as any)._resolveFilename;
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { QuotaHistory, timeWindow } = require('../accounts/quotaHistory');
 
-const USAGE_KEY = 'antigravityMaestro.usageHours';
-const LEGACY_KEY = 'antigravityMaestro.usageSamples';
-const QUOTA_KEY = 'antigravityMaestro.quotaSamples';
+const USAGE_KEY = 'chatgpt.usageHours';
+const LEGACY_KEY = 'chatgpt.usageSamples';
+const QUOTA_KEY = 'chatgpt.quotaSamples';
 
 function memento(initial: Record<string, unknown> = {}) {
   const values = new Map(Object.entries(initial));
@@ -77,7 +77,7 @@ test('a new hour, account or model starts its own bucket', async () => {
   await history.recordUsage(usage(at(10, 59), 100, 10));
   await history.recordUsage(usage(at(11, 0), 100, 10));
   await history.recordUsage(usage(at(11, 1), 100, 10, { accountId: 'b' }));
-  await history.recordUsage(usage(at(11, 2), 100, 10, { modelId: 'gemini' }));
+  await history.recordUsage(usage(at(11, 2), 100, 10, { modelId: 'test-model' }));
 
   assert.equal(history.usageBuckets().length, 4);
   assert.deepEqual(

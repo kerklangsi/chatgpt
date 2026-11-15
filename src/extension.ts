@@ -3,8 +3,6 @@ import { AccountLease } from './accounts/accountLease';
 import { AccountManager } from './accounts/accountManager';
 import { AccountStore } from './accounts/accountStore';
 import { QuotaHistory } from './accounts/quotaHistory';
-import { CoordinatorService } from './coordinator/coordinatorService';
-import { registerCoordinatorTools } from './coordinator/coordinatorTools';
 import { GatewayManager } from './gateway/manager';
 import { AgentIntegration } from './integrations/agentIntegration';
 import { ClaudeCodeIntegration } from './integrations/claudeCode';
@@ -18,12 +16,12 @@ import { ModelCatalog } from './upstream/modelCatalog';
 import { Config } from './utils/config';
 import { Logger } from './utils/logger';
 
-const CHAT_PROVIDER_VENDOR = 'chatgpt-maestro';
-const COPILOT_PUBLISH_KEY = 'chatgptMaestro.copilotPublish';
-const COPILOT_UTILITY_KEY = 'chatgptMaestro.copilotUtilityDefaultSet';
+const CHAT_PROVIDER_VENDOR = 'chatgpt';
+const COPILOT_PUBLISH_KEY = 'chatgpt.copilotModelsEnabled';
+const COPILOT_UTILITY_KEY = 'chatgpt.copilotUtilityDefaultSet';
 const UTILITY_SETTINGS = ['chat.utilityModel', 'chat.utilitySmallModel'] as const;
 const UTILITY_SMALL_SETTING = 'chat.utilitySmallModel';
-const UTILITY_SMALL_KEY = 'chatgptMaestro.copilotUtilitySmallModel';
+const UTILITY_SMALL_KEY = 'chatgpt.copilotUtilitySmallModel';
 
 const AGENT_LABELS: Record<AgentTarget, string> = {
   'claude-code': 'Claude Code',
@@ -32,7 +30,7 @@ const AGENT_LABELS: Record<AgentTarget, string> = {
 
 export function activate(context: vscode.ExtensionContext): void {
   Logger.init();
-  Logger.info('ChatGPT Maestro activating…');
+  Logger.info('ChatGPT activating…');
 
   const history = new QuotaHistory(context.globalState);
   const store = new AccountStore(context.globalState, context.secrets, context.workspaceState);
@@ -42,8 +40,6 @@ export function activate(context: vscode.ExtensionContext): void {
   const catalog = new ModelCatalog(accounts);
   const client = new ChatGPTClient();
   const lease = new AccountLease(accounts, catalog, history);
-  const coordinator = new CoordinatorService(context);
-  registerCoordinatorTools(context, coordinator);
 
   const gateway = new GatewayManager(context.secrets, lease, client, catalog);
 
@@ -54,7 +50,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const chatProvider = new ChatGPTChatProvider(catalog, lease, client);
   chatProvider.setPublished(context.globalState.get<boolean>(COPILOT_PUBLISH_KEY) !== false);
 
-  const accountsView = new AccountsViewProvider(context.extensionUri, accounts, history, coordinator);
+  const accountsView = new AccountsViewProvider(context.extensionUri, accounts, history);
 
   accountsView.setStatusProvider(async () => {
     const available = catalog.listAll().length;
@@ -67,7 +63,7 @@ export function activate(context: vscode.ExtensionContext): void {
       modelId: `${available} models`,
       applyLabel: 'Set up',
       idleText: publishing ? 'no models published yet' : 'using its own defaults',
-      detail: 'Pick them under Manage Models → ChatGPT Maestro in the chat model picker.',
+      detail: 'Pick them under Manage Models → ChatGPT in the chat model picker.',
     };
 
     const utilityOverride = readUtilitySmallModel();
@@ -103,7 +99,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const userClaudeHeaders = process.env[CLAUDE_HEADERS_ENV];
   const terminalEnv = context.environmentVariableCollection;
-  terminalEnv.description = 'Names this window to ChatGPT Maestro';
+  terminalEnv.description = 'Names this window to ChatGPT';
   process.env[WINDOW_ENV] = accounts.windowKey;
   terminalEnv.replace(WINDOW_ENV, accounts.windowKey);
 
@@ -166,7 +162,6 @@ export function activate(context: vscode.ExtensionContext): void {
     accountsView,
     catalog,
     chatProvider,
-    coordinator,
     gateway,
     claudeCode,
     codex,
@@ -187,7 +182,7 @@ export function activate(context: vscode.ExtensionContext): void {
     void accounts.refreshAllQuotas();
   }
 
-  Logger.info('ChatGPT Maestro activated successfully');
+  Logger.info('ChatGPT activated successfully');
 }
 
 interface CommandDeps {
@@ -195,7 +190,6 @@ interface CommandDeps {
   accountsView: AccountsViewProvider;
   catalog: ModelCatalog;
   chatProvider: ChatGPTChatProvider;
-  coordinator: CoordinatorService;
   gateway: GatewayManager;
   claudeCode: ClaudeCodeIntegration;
   codex: CodexIntegration;
@@ -209,7 +203,6 @@ function registerCommands(context: vscode.ExtensionContext, deps: CommandDeps): 
     accountsView,
     catalog,
     chatProvider,
-    coordinator,
     gateway,
     claudeCode,
     codex,
@@ -223,31 +216,24 @@ function registerCommands(context: vscode.ExtensionContext, deps: CommandDeps): 
           return await handler(...args);
         } catch (error: any) {
           Logger.error(`${command} failed: ${error.message}`, error);
-          vscode.window.showErrorMessage(`ChatGPT Maestro: ${error.message}`);
+          vscode.window.showErrorMessage(`ChatGPT: ${error.message}`);
           return undefined;
         }
       }),
     );
   };
 
-  register('chatgptMaestro.openAccounts', () => accountsView.openAsPanel());
-  register('chatgptMaestro.showLogs', () => Logger.show());
+  register('chatgpt.openAccounts', () => accountsView.openAsPanel());
+  register('chatgpt.showLogs', () => Logger.show());
 
-  register('chatgptMaestro.addAccount', async () => {
+  register('chatgpt.addAccount', async () => {
     const account = await accounts.addAccount();
     if (account) {
       vscode.window.showInformationMessage(`Connected ChatGPT account: ${account.email}`);
     }
   });
 
-  register('chatgptMaestro.addAccountToken', async () => {
-    const account = await accounts.addAccountWithToken();
-    if (account) {
-      vscode.window.showInformationMessage(`Connected ChatGPT account: ${account.email}`);
-    }
-  });
-
-  register('chatgptMaestro.refreshQuotas', async () => {
+  register('chatgpt.refreshQuotas', async () => {
     if (accounts.list().length === 0) {
       vscode.window.showInformationMessage('Add a ChatGPT account first.');
       return;
@@ -258,7 +244,7 @@ function registerCommands(context: vscode.ExtensionContext, deps: CommandDeps): 
     );
   });
 
-  register('chatgptMaestro.switchAccount', async () => {
+  register('chatgpt.switchAccount', async () => {
     const all = accounts.list();
     if (all.length === 0) {
       vscode.window.showInformationMessage('No ChatGPT account added yet.');
@@ -275,11 +261,11 @@ function registerCommands(context: vscode.ExtensionContext, deps: CommandDeps): 
     );
     if (picked) {
       await accounts.setActive(picked.id);
-      vscode.window.showInformationMessage(`ChatGPT Maestro switched to ${picked.label}`);
+      vscode.window.showInformationMessage(`ChatGPT switched to ${picked.label}`);
     }
   });
 
-  register('chatgptMaestro.removeAccount', async (accountId?: string) => {
+  register('chatgpt.removeAccount', async (accountId?: string) => {
     const all = accounts.list();
     const target = accountId
       ? accounts.get(accountId)
@@ -313,88 +299,14 @@ function registerCommands(context: vscode.ExtensionContext, deps: CommandDeps): 
     }
   });
 
-  // ── Coordinator Commands ───────────────────────────────────────────────────
-
-  register('chatgptMaestro.coordinator.createTask', async () => {
-    const title = await vscode.window.showInputBox({
-      title: 'Create Coordinator Task',
-      prompt: 'Enter task title',
-    });
-    if (!title) return;
-
-    const description = await vscode.window.showInputBox({
-      title: 'Task Description',
-      prompt: 'Enter detailed task description or requirements',
-    });
-    if (!description) return;
-
-    const availableModels = await coordinator.listAvailableModels();
-    const modelItems = [
-      { label: '$(gear) Unassigned / Auto', id: '' },
-      ...availableModels.map((m) => ({
-        label: `${m.name || m.id} (${m.vendor})`,
-        description: m.id,
-        id: m.id,
-      })),
-    ];
-
-    const pickedModel = await vscode.window.showQuickPick(modelItems, {
-      placeHolder: 'Select an assignee model (optional)',
-    });
-
-    const task = coordinator.createTask(title, description, pickedModel?.id || undefined);
-    vscode.window.showInformationMessage(`Created coordinator task: ${task.id} (${task.title})`);
-  });
-
-  register('chatgptMaestro.coordinator.delegateToModel', async () => {
-    const tasks = coordinator.listTasks('open');
-    if (tasks.length === 0) {
-      vscode.window.showInformationMessage('No open coordinator tasks available to delegate.');
-      return;
-    }
-
-    const pickedTask = await vscode.window.showQuickPick(
-      tasks.map((t) => ({ label: t.title, description: t.priority, detail: t.description, id: t.id })),
-      { placeHolder: 'Choose a task to delegate' },
-    );
-    if (!pickedTask) return;
-
-    const availableModels = await coordinator.listAvailableModels();
-    if (availableModels.length === 0) {
-      vscode.window.showErrorMessage('No other language models detected in VS Code.');
-      return;
-    }
-
-    const pickedModel = await vscode.window.showQuickPick(
-      availableModels.map((m) => ({
-        label: `${m.name || m.id} (${m.vendor})`,
-        description: m.id,
-        id: m.id,
-      })),
-      { placeHolder: 'Select the model to run this task on' },
-    );
-    if (!pickedModel) return;
-
-    await vscode.window.withProgress(
-      {
-        location: vscode.ProgressLocation.Notification,
-        title: `Running task "${pickedTask.label}" on ${pickedModel.label}…`,
-      },
-      async () => {
-        await coordinator.delegateTask(pickedTask.id, pickedModel.id);
-        vscode.window.showInformationMessage(`Task completed by ${pickedModel.id}! Check result in Coordinator.`);
-      },
-    );
-  });
-
   // ── Gateway ────────────────────────────────────────────────────────────────
 
-  register('chatgptMaestro.restartGateway', async () => {
+  register('chatgpt.restartGateway', async () => {
     const endpoint = await gateway.restart();
-    vscode.window.showInformationMessage(`ChatGPT Maestro gateway running at ${endpoint.baseUrl}`);
+    vscode.window.showInformationMessage(`ChatGPT gateway running at ${endpoint.baseUrl}`);
   });
 
-  register('chatgptMaestro.copyGatewayInfo', async () => {
+  register('chatgpt.copyGatewayInfo', async () => {
     const endpoint = gateway.endpoint() ?? (await gateway.start());
     await vscode.env.clipboard.writeText(`${endpoint.baseUrl}\n${endpoint.apiKey}`);
     vscode.window.showInformationMessage(`Copied gateway URL and key to clipboard (${endpoint.baseUrl}).`);
@@ -402,23 +314,23 @@ function registerCommands(context: vscode.ExtensionContext, deps: CommandDeps): 
 
   // ── Agent integrations ─────────────────────────────────────────────────────
 
-  register('chatgptMaestro.claudeCode.apply', () => applyToAgent(claudeCode, 'Claude Code', deps));
-  register('chatgptMaestro.claudeCode.restore', () => restoreAgent(claudeCode, 'Claude Code', deps));
-  register('chatgptMaestro.codex.apply', () => applyToAgent(codex, 'Codex', deps));
-  register('chatgptMaestro.codex.restore', () => restoreAgent(codex, 'Codex', deps));
+  register('chatgpt.claudeCode.apply', () => applyToAgent(claudeCode, 'Claude Code', deps));
+  register('chatgpt.claudeCode.restore', () => restoreAgent(claudeCode, 'Claude Code', deps));
+  register('chatgpt.codex.apply', () => applyToAgent(codex, 'Codex', deps));
+  register('chatgpt.codex.restore', () => restoreAgent(codex, 'Codex', deps));
 
-  register('chatgptMaestro.copilot.setup', () => setUpCopilot(catalog, chatProvider, context, accountsView));
-  register('chatgptMaestro.copilot.restore', () => restoreCopilot(chatProvider, context, accountsView));
-  register('chatgptMaestro.commitMessages.apply', () => applyUtilityModel(catalog, chatProvider, context, accountsView));
-  register('chatgptMaestro.commitMessages.restore', () => restoreUtilityModel(context, accountsView));
+  register('chatgpt.copilot.setup', () => setUpCopilot(catalog, chatProvider, context, accountsView));
+  register('chatgpt.copilot.restore', () => restoreCopilot(chatProvider, context, accountsView));
+  register('chatgpt.commitMessages.apply', () => applyUtilityModel(catalog, chatProvider, context, accountsView));
+  register('chatgpt.commitMessages.restore', () => restoreUtilityModel(context, accountsView));
 
-  register('chatgptMaestro.showStatus', async () => {
+  register('chatgpt.showStatus', async () => {
     const lines: string[] = [];
     const active = accounts.getActive();
     lines.push(active ? `Account: ${active.email} (${active.subscriptionTier?.toUpperCase()})` : 'Account: none');
     lines.push(gateway.running ? `Gateway: ${gateway.endpoint()!.baseUrl}` : 'Gateway: stopped');
     lines.push(`Models: ${catalog.listAll().length}`);
-    vscode.window.showInformationMessage(`ChatGPT Maestro — ${lines.join(' · ')}`);
+    vscode.window.showInformationMessage(`ChatGPT — ${lines.join(' · ')}`);
   });
 }
 
@@ -435,7 +347,7 @@ async function setUpCopilot(
   await vscode.commands.executeCommand('workbench.action.chat.openModelPicker');
   void accountsView.postState();
   vscode.window.showInformationMessage(
-    `${available.length} ChatGPT models published. In the model picker, choose Manage Models → ChatGPT Maestro.`,
+    `${available.length} ChatGPT models published. In the model picker, choose Manage Models → ChatGPT.`,
   );
 }
 
@@ -544,7 +456,7 @@ async function applyToAgent(
 
   void deps.accountsView.postState();
   await deps.seedAgentEnv();
-  vscode.window.showInformationMessage(`${label} now configured to use ${picked.label} via ChatGPT Maestro gateway.`);
+  vscode.window.showInformationMessage(`${label} now configured to use ${picked.label} via ChatGPT gateway.`);
 }
 
 async function restoreAgent(
@@ -559,6 +471,6 @@ async function restoreAgent(
 }
 
 export function deactivate(): void {
-  Logger.info('ChatGPT Maestro deactivating');
+  Logger.info('ChatGPT deactivating');
   Logger.dispose();
 }

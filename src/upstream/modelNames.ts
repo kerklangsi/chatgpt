@@ -1,5 +1,5 @@
 ﻿export function displayNameFor(modelId: string): string {
-  const clean = modelId.replace(/^chatgpt-maestro\//, '').toLowerCase();
+  const clean = modelId.replace(/^chatgpt\//, '').toLowerCase();
   switch (clean) {
     case 'gpt-4o':
       return 'GPT-4o (Omni)';

@@ -3,9 +3,8 @@ import { ModelQuota } from './types';
 /**
  * One distinct quota pool, fronted by a single model.
  *
- * Antigravity meters whole model families against one bucket, so twenty rows
- * all move together. Folding them to one entry per bucket is what makes a
- * quota readable in the panel and short enough for the status bar.
+ * ChatGPT may report several models against one quota window. Folding them to
+ * one entry per bucket keeps the quota readable in the panel and status bar.
  */
 export interface QuotaPool<T extends ModelQuota = ModelQuota> {
   /** Model shown as the face of the pool. */
@@ -17,24 +16,21 @@ export interface QuotaPool<T extends ModelQuota = ModelQuota> {
 /**
  * Preferred faces for a pool when the upstream has not said which models are
  * current, most wanted first. Whichever member matches the earliest pattern
- * represents the bucket — the newest Claude version among them, so a pool
- * holding Opus 4.6 and 5.5 is named after 5.5 — and anything unmatched falls
- * back to the largest-context model in the pool.
+ * represents the bucket; anything unmatched falls back to the largest-context
+ * model in the pool.
  */
 const REPRESENTATIVE_PRIORITY: RegExp[] = [
-  /^claude-opus/,
-  /^claude-sonnet/,
-  /^gemini-3(\.\d+)?-pro/,
-  /^gemini-3(\.\d+)?-flash/,
-  /^gemini/,
-  /^gpt-oss/,
+  /^gpt-4o/,
+  /^o3/,
+  /^o1/,
+  /^gpt/,
+  /^auto$/,
 ];
 
 /** Vendor families, in the order a user cares about them. */
 const FAMILIES: { id: string; pattern: RegExp }[] = [
-  { id: 'claude', pattern: /^claude/ },
-  { id: 'gemini', pattern: /^gemini/ },
-  { id: 'gpt', pattern: /^gpt/ },
+  { id: 'gpt', pattern: /^(gpt|auto)/ },
+  { id: 'o-series', pattern: /^o\d/ },
 ];
 
 /**
@@ -42,9 +38,8 @@ const FAMILIES: { id: string; pattern: RegExp }[] = [
  * into one pool each — that combination is the bucket's fingerprint. Models
  * without a reset timestamp cannot be matched up, so they stay on their own.
  *
- * The vendor belongs in the key even though it is not part of the bucket: on a
- * fresh account every model reads 100% on the same window, and merging Claude
- * into Gemini would hide a whole family from the panel.
+ * The model family belongs in the key even though it is not part of the bucket,
+ * so unrelated models with matching quota values do not get merged.
  *
  * Pools come back tightest-quota-first.
  */
@@ -78,43 +73,19 @@ function pickRepresentative<T extends ModelQuota>(members: T[]): T {
     return index === -1 ? REPRESENTATIVE_PRIORITY.length : index;
   };
 
-  const version = (model: T) => claudeVersion(model.modelId)?.order ?? 0;
-  const thinks = (model: T) => (/-thinking$/.test(model.modelId) ? 1 : 0);
-
-  // The Antigravity client's own model list comes first: a model it no longer
-  // offers can still be in the quota reading, and naming the Gemini pool after
-  // one that cannot be called is what the pinned "3.5 Flash" face did.
+  // The declared ChatGPT model order takes precedence over inferred names.
   const listed = (model: T) => model.agentOrder ?? Number.MAX_SAFE_INTEGER;
 
   return [...members].sort(
     (a, b) =>
       listed(a) - listed(b) ||
       rank(a) - rank(b) ||
-      version(b) - version(a) ||
-      thinks(b) - thinks(a) ||
       (b.maxTokens ?? 0) - (a.maxTokens ?? 0) ||
       (a.displayName ?? a.modelId).localeCompare(b.displayName ?? b.modelId),
   )[0];
 }
 
-/**
- * `claude-opus-5-5-medium` → 5.5, `claude-sonnet-4-20250514` → 4. A dated
- * snapshot's date is not a minor version, so the minor is one or two digits.
- */
-function claudeVersion(modelId: string): { label: string; order: number } | undefined {
-  const match = modelId.match(/^claude-[a-z]+-(\d+)(?:-(\d{1,2})(?!\d))?/);
-  if (!match) {
-    return undefined;
-  }
-  const major = Number(match[1]);
-  const minor = match[2] === undefined ? undefined : Number(match[2]);
-  return {
-    label: minor === undefined ? `${major}` : `${major}.${minor}`,
-    order: major * 100 + (minor ?? 0),
-  };
-}
-
-/** Vendor family of a model id: 'claude', 'gemini', 'gpt', or 'other'. */
+/** ChatGPT family of a model id: GPT, o-series, or other. */
 export function modelFamily(modelId: string): string {
   return FAMILIES.find((family) => family.pattern.test(modelId))?.id ?? 'other';
 }

@@ -8,7 +8,7 @@ import { randomToken } from '../utils/ids';
 import { Logger } from '../utils/logger';
 import { GatewayServer } from './server';
 
-const API_KEY_SECRET = 'chatgptMaestro.gatewayKey';
+const API_KEY_SECRET = 'chatgpt.gatewayKey';
 
 export class GatewayManager implements vscode.Disposable {
   private server: GatewayServer | undefined;

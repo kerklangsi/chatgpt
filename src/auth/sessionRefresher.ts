@@ -1,12 +1,28 @@
 import { StoredSession } from '../accounts/types';
 import { Logger } from '../utils/logger';
+import { refreshOAuthToken } from './oauthClient';
 import { CHATGPT_SESSION_URL, DEFAULT_USER_AGENT, ChatGPTSessionResponse } from './sessionAuth';
 
 export class SessionRefresher {
   /**
-   * Refreshes access token for a stored session using stored cookie/session token.
+   * Refreshes access token for a stored session using stored OAuth refresh token or cookie.
    */
   static async refresh(currentSession: StoredSession, _proxyUrl?: string): Promise<StoredSession> {
+    if (currentSession.refreshToken) {
+      const tokens = await refreshOAuthToken(currentSession.refreshToken);
+      const expiresAt = tokens.expires_in
+        ? Date.now() + tokens.expires_in * 1000
+        : Date.now() + 24 * 60 * 60 * 1000;
+
+      return {
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token ?? currentSession.refreshToken,
+        sessionToken: currentSession.sessionToken,
+        cookies: currentSession.cookies,
+        expiresAt,
+      };
+    }
+
     const cookieHeader =
       currentSession.cookies ??
       (currentSession.sessionToken

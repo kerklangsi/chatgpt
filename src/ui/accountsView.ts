@@ -9,26 +9,26 @@ import {
   timeWindow,
 } from '../accounts/quotaHistory';
 import { AccountMetadata } from '../accounts/types';
-import { CoordinatorService } from '../coordinator/coordinatorService';
+import { quotaPools } from '../accounts/quotaPools';
 import { displayNamesFor } from '../upstream/modelNames';
 import { Logger } from '../utils/logger';
 
 const AGENT_COMMANDS: Record<string, { apply: string; restore?: string }> = {
   'claude-code': {
-    apply: 'chatgptMaestro.claudeCode.apply',
-    restore: 'chatgptMaestro.claudeCode.restore',
+    apply: 'chatgpt.claudeCode.apply',
+    restore: 'chatgpt.claudeCode.restore',
   },
   codex: {
-    apply: 'chatgptMaestro.codex.apply',
-    restore: 'chatgptMaestro.codex.restore',
+    apply: 'chatgpt.codex.apply',
+    restore: 'chatgpt.codex.restore',
   },
   copilot: {
-    apply: 'chatgptMaestro.copilot.setup',
-    restore: 'chatgptMaestro.copilot.restore',
+    apply: 'chatgpt.copilot.setup',
+    restore: 'chatgpt.copilot.restore',
   },
   commitMessages: {
-    apply: 'chatgptMaestro.commitMessages.apply',
-    restore: 'chatgptMaestro.commitMessages.restore',
+    apply: 'chatgpt.commitMessages.apply',
+    restore: 'chatgpt.commitMessages.restore',
   },
 };
 
@@ -52,7 +52,7 @@ export interface ExtraStatus {
 }
 
 export class AccountsViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
-  public static readonly viewType = 'chatgpt-maestro-accounts';
+  public static readonly viewType = 'chatgpt-accounts';
   private view: vscode.WebviewView | undefined;
   private panel: vscode.WebviewPanel | undefined;
   private pending: NodeJS.Timeout | undefined;
@@ -63,15 +63,11 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider, vscode.
     private readonly extensionUri: vscode.Uri,
     private readonly accounts: AccountManager,
     private readonly history: QuotaHistory,
-    private readonly coordinator?: CoordinatorService,
   ) {
     this.disposables.push(
       accounts.onDidChange(() => this.schedulePost()),
       history.onDidChange(() => this.schedulePost()),
     );
-    if (coordinator) {
-      this.disposables.push(coordinator.onDidChange(() => this.schedulePost()));
-    }
   }
 
   setStatusProvider(provider: () => Promise<ExtraStatus>): void {
@@ -93,8 +89,8 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider, vscode.
     }
 
     this.panel = vscode.window.createWebviewPanel(
-      'chatgptMaestro.accountsPanel',
-      'ChatGPT Maestro',
+      'chatgpt.accountsPanel',
+      'ChatGPT',
       vscode.ViewColumn.Active,
       { enableScripts: true, retainContextWhenHidden: true },
     );
@@ -133,17 +129,14 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider, vscode.
           break;
         }
         case 'restartGateway':
-          await vscode.commands.executeCommand('chatgptMaestro.restartGateway');
+          await vscode.commands.executeCommand('chatgpt.restartGateway');
           await this.postState();
           break;
         case 'copyGatewayInfo':
-          await vscode.commands.executeCommand('chatgptMaestro.copyGatewayInfo');
+          await vscode.commands.executeCommand('chatgpt.copyGatewayInfo');
           break;
         case 'addAccount':
-          await vscode.commands.executeCommand('chatgptMaestro.addAccount');
-          break;
-        case 'addAccountToken':
-          await vscode.commands.executeCommand('chatgptMaestro.addAccountToken');
+          await vscode.commands.executeCommand('chatgpt.addAccount');
           break;
         case 'refreshAll':
           await this.accounts.refreshAllQuotas();
@@ -158,10 +151,10 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider, vscode.
           await this.accounts.setActive(message.accountId);
           break;
         case 'removeAccount':
-          await vscode.commands.executeCommand('chatgptMaestro.removeAccount', message.accountId);
+          await vscode.commands.executeCommand('chatgpt.removeAccount', message.accountId);
           break;
         case 'reauth':
-          await vscode.commands.executeCommand('chatgptMaestro.addAccount');
+          await vscode.commands.executeCommand('chatgpt.addAccount');
           break;
         case 'clearHistory':
           await this.clearHistory();
@@ -169,43 +162,11 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider, vscode.
         case 'openLogs':
           Logger.show();
           break;
-        case 'createCoordinatorTask':
-          if (this.coordinator && message.title && message.description) {
-            this.coordinator.createTask(
-              message.title,
-              message.description,
-              message.assignee,
-              message.priority,
-            );
-            await this.postState();
-          }
-          break;
-        case 'delegateCoordinatorTask':
-          if (this.coordinator && message.taskId && message.targetModelId) {
-            await vscode.window.withProgress(
-              {
-                location: vscode.ProgressLocation.Notification,
-                title: `Delegating task to ${message.targetModelId}…`,
-              },
-              async () => {
-                await this.coordinator?.delegateTask(
-                  message.taskId,
-                  message.targetModelId,
-                  message.extraInstructions,
-                );
-              },
-            );
-            await this.postState();
-          }
-          break;
-        case 'refreshCoordinator':
-          await this.postState();
-          break;
         default:
           Logger.debug(`Unhandled webview message: ${JSON.stringify(message)}`);
       }
     } catch (error: any) {
-      vscode.window.showErrorMessage(`ChatGPT Maestro: ${error.message}`);
+      vscode.window.showErrorMessage(`ChatGPT: ${error.message}`);
     }
   }
 
@@ -229,21 +190,11 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider, vscode.
       Logger.warn('Could not read integration status', error);
     }
 
-    const coordinatorTasks = this.coordinator?.listTasks() ?? [];
-    let availableModels: any[] = [];
-    try {
-      availableModels = (await this.coordinator?.listAvailableModels()) ?? [];
-    } catch {}
-
     return {
       accounts: this.accounts.list().map((account) => toAccountView(account, activeId)),
       activeId,
       usage: this.usageView(),
       history: this.history.series(),
-      coordinator: {
-        tasks: coordinatorTasks,
-        availableModels,
-      },
       status,
     };
   }
@@ -276,7 +227,7 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider, vscode.
 
   private async clearHistory(): Promise<void> {
     const answer = await vscode.window.showWarningMessage(
-      'Clear all ChatGPT Maestro usage history?',
+      'Clear all ChatGPT usage history?',
       { modal: true },
       'Clear history',
     );
@@ -323,6 +274,27 @@ export class AccountsViewProvider implements vscode.WebviewViewProvider, vscode.
   }
 }
 
+function formatResetsIn(resetTime: string): string | undefined {
+  if (!resetTime) {
+    return undefined;
+  }
+  const target = Date.parse(resetTime);
+  if (Number.isNaN(target)) {
+    return undefined;
+  }
+
+  const remainingMinutes = Math.max(0, Math.round((target - Date.now()) / 60_000));
+  if (remainingMinutes >= 24 * 60) {
+    const days = Math.floor(remainingMinutes / (24 * 60));
+    const hours = Math.floor((remainingMinutes % (24 * 60)) / 60);
+    return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
+  }
+
+  const hours = Math.floor(remainingMinutes / 60);
+  const minutes = remainingMinutes % 60;
+  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+}
+
 function toAccountView(account: AccountMetadata, activeId: string | undefined) {
   const quotas = Object.values(account.quota?.models ?? {});
   const names = displayNamesFor(quotas);
@@ -330,6 +302,7 @@ function toAccountView(account: AccountMetadata, activeId: string | undefined) {
     .map((model) => ({
       ...model,
       displayName: names[model.modelId],
+      resetsIn: formatResetsIn(model.resetTime),
     }))
     .sort((a, b) => (a.displayName ?? a.modelId).localeCompare(b.displayName ?? b.modelId));
 
@@ -343,9 +316,17 @@ function toAccountView(account: AccountMetadata, activeId: string | undefined) {
     needsReauth: account.needsReauth === true,
     lastError: account.lastError,
     quotaFetchedAt: account.quota?.fetchedAt,
-    lowestQuota: models.length > 0 ? Math.min(...models.map((m) => m.percentage)) : 100,
+    lowestQuota: models.length > 0 ? Math.min(...models.map((m) => m.percentage)) : undefined,
     models,
-    pools: [],
-    groups: [],
+    pools: quotaPools(models),
+    groups: (account.quota?.groups ?? []).map((group) => ({
+      displayName: group.displayName,
+      description: group.description,
+      buckets: group.buckets.map((bucket) => ({
+        displayName: bucket.displayName ?? bucket.window ?? bucket.bucketId,
+        percentage: Math.floor(bucket.remainingFraction * 100),
+        resetsIn: formatResetsIn(bucket.resetTime),
+      })),
+    })),
   };
 }

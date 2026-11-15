@@ -15,7 +15,7 @@ import {
 } from './shared';
 
 /** globalState key holding the pre-apply snapshot used by restore(). */
-const SNAPSHOT_KEY = 'chatgptMaestro.claudeCodeSnapshot';
+const SNAPSHOT_KEY = 'chatgpt.claudeCodeSnapshot';
 
 /** The env vars this integration owns inside Claude Code's settings file. */
 const MANAGED_ENV_KEYS = [
@@ -145,9 +145,8 @@ export class ClaudeCodeIntegration implements AgentIntegration {
     // Claude Code's experimental betas attach Anthropic-only message ids that
     // the gateway cannot honour.
     env.CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS = '1';
-    // The billing line it would otherwise open the system prompt with makes
-    // Gemini Flash refuse the request with a 429 on every account. The gateway
-    // strips it too, for settings applied by an older version.
+    // Some upstream models reject the attribution line with a rate-limit
+    // response. The gateway strips it too, for settings applied by older builds.
     env.CLAUDE_CODE_ATTRIBUTION_HEADER = '0';
 
     if (options.maxInputTokens && options.maxInputTokens > 0) {

@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   Antigravity Maestro — design tokens.
+   ChatGPT — design tokens.
 
    Surfaces are generated, not hand-set: every layer is the host theme's own
    sidebar colour with a measured amount of light (dark themes) or white and
@@ -10,7 +10,7 @@
 
    Colour has exactly three jobs here:
      brand    the serving account, the selected tab, focus
-     family   Claude, Gemini, GPT — matched in lightness so none dominates
+    family   GPT and o-series — matched in lightness so neither dominates
      status   warn and low — only when a number needs attention
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -50,11 +50,9 @@
   --text-2: color-mix(in oklch, var(--host-fg) 78%, var(--canvas));
   --text-3: color-mix(in oklch, var(--host-fg) 62%, var(--canvas));
 
-  /* Families: saturated and matched in lightness — Claude coral, Gemini
-     blue, GPT-OSS green. */
-  --claude: oklch(0.74 0.16 38);
-  --gemini: oklch(0.72 0.155 256);
+    /* Families: saturated and matched in lightness — GPT green, o-series blue. */
   --gpt: oklch(0.79 0.165 155);
+    --o-series: oklch(0.72 0.155 256);
   --other: oklch(0.75 0.02 260);
 
   /* Status */
@@ -119,9 +117,8 @@ body.vscode-light {
   --text-2: color-mix(in oklch, var(--host-fg) 86%, #64748b);
   --text-3: color-mix(in oklch, var(--host-fg) 62%, #64748b);
 
-  --claude: oklch(0.63 0.18 36);
-  --gemini: oklch(0.55 0.2 260);
   --gpt: oklch(0.6 0.16 155);
+  --o-series: oklch(0.55 0.2 260);
   --other: oklch(0.55 0.02 260);
 
   --good: oklch(0.55 0.13 155);

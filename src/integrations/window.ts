@@ -8,10 +8,10 @@
  */
 
 /** Header an agent names its window with on every gateway request. */
-export const WINDOW_HEADER = 'x-maestro-window';
+export const WINDOW_HEADER = 'x-chatgpt-window';
 
 /** Variable each window sets to its key for the agents it launches. */
-export const WINDOW_ENV = 'ANTIGRAVITY_MAESTRO_WINDOW';
+export const WINDOW_ENV = 'CHATGPT_WINDOW';
 
 /** Claude Code's variable for extra request headers, one `Name: value` per line. */
 export const CLAUDE_HEADERS_ENV = 'ANTHROPIC_CUSTOM_HEADERS';

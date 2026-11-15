@@ -10,7 +10,7 @@ export class Logger {
 
   static init(): void {
     if (!Logger.channel) {
-      Logger.channel = vscode.window.createOutputChannel('ChatGPT Maestro');
+      Logger.channel = vscode.window.createOutputChannel('ChatGPT');
     }
   }
 
@@ -42,7 +42,7 @@ export class Logger {
 
   private static minLevel(): number {
     const configured = vscode.workspace
-      .getConfiguration('chatgptMaestro')
+      .getConfiguration('chatgpt')
       .get<LogLevel>('logLevel', 'info');
     return LEVEL_ORDER[configured] ?? LEVEL_ORDER.info;
   }

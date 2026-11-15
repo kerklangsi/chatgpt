@@ -52,7 +52,7 @@ export class GatewayServer {
         });
         this.port = port;
         this.server = server;
-        Logger.info(`ChatGPT Maestro Gateway listening on http://127.0.0.1:${port}`);
+        Logger.info(`ChatGPT Gateway listening on http://127.0.0.1:${port}`);
         return port;
       } catch (err: any) {
         if (err.code === 'EADDRINUSE') {
@@ -71,7 +71,7 @@ export class GatewayServer {
         this.server?.close(() => resolve());
       });
       this.server = undefined;
-      Logger.info('ChatGPT Maestro Gateway stopped.');
+      Logger.info('ChatGPT Gateway stopped.');
     }
   }
 
@@ -80,7 +80,7 @@ export class GatewayServer {
     const route = `${req.method} ${url.pathname}`;
 
     if (route === 'GET /health') {
-      sendJson(res, 200, { status: 'ok', vendor: 'chatgpt-maestro', models: this.deps.catalog.listAll().length });
+      sendJson(res, 200, { status: 'ok', vendor: 'chatgpt', models: this.deps.catalog.listAll().length });
       return;
     }
 

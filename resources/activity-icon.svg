@@ -1,9 +1,6 @@
 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- The quota ring, open at the bottom like the panel's gauges -->
-  <path d="M7.4 13.5 A6.5 6.5 0 1 1 16.6 13.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity="0.35" />
-  <path d="M7.4 13.5 A6.5 6.5 0 1 1 17.63 5.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-  <!-- The model, held up by nothing -->
-  <circle cx="12" cy="9" r="3" fill="currentColor" />
-  <!-- The field beneath it, pressed down only where the weight hangs -->
-  <path d="M1 18.2L4.5 18.2C7.8 18.2 8.7 21 12 21C15.3 21 16.2 18.2 19.5 18.2L23 18.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity="0.75" />
+  <path d="M20.25 11.25a8.25 8.25 0 0 1-8.25 8.25 8.4 8.4 0 0 1-3.45-.74L3.75 20.25l1.5-4.35A8.2 8.2 0 0 1 3.75 11.25 8.25 8.25 0 0 1 12 3a8.25 8.25 0 0 1 8.25 8.25Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+  <circle cx="8.25" cy="11.25" r="0.9" fill="currentColor" />
+  <circle cx="12" cy="11.25" r="0.9" fill="currentColor" />
+  <circle cx="15.75" cy="11.25" r="0.9" fill="currentColor" />
 </svg>

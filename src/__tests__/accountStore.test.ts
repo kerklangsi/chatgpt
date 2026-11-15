@@ -31,7 +31,7 @@ const accounts = [
 ];
 
 test('accounts can be dragged into a new order', () => {
-  const state = memento({ 'chatgptMaestro.accounts': [...accounts] });
+  const state = memento({ 'chatgpt.accounts': [...accounts] });
   const store = new AccountStore(state, {});
 
   return store.reorder(['c', 'a', 'b']).then(() => {
@@ -45,7 +45,7 @@ test('accounts can be dragged into a new order', () => {
 test('an account missing from the dragged order is kept, not dropped', async () => {
   // An account added (or removed) while the panel was being dragged around
   // must not disappear because the webview's list was a moment out of date.
-  const state = memento({ 'chatgptMaestro.accounts': [...accounts] });
+  const state = memento({ 'chatgpt.accounts': [...accounts] });
   const store = new AccountStore(state, {});
 
   await store.reorder(['c', 'ghost']);
@@ -59,7 +59,7 @@ test('an account missing from the dragged order is kept, not dropped', async () 
 test('each window keeps its own active account', async () => {
   // globalState is shared live between VS Code windows; a pick in one window
   // must not move another window that already chose its own account.
-  const shared = memento({ 'chatgptMaestro.accounts': [...accounts] });
+  const shared = memento({ 'chatgpt.accounts': [...accounts] });
   const first = new AccountStore(shared, {}, memento());
   const second = new AccountStore(shared, {}, memento());
 
@@ -73,14 +73,14 @@ test('each window keeps its own active account', async () => {
 });
 
 test('a window that never chose starts on the account picked last', async () => {
-  const shared = memento({ 'chatgptMaestro.accounts': [...accounts] });
+  const shared = memento({ 'chatgpt.accounts': [...accounts] });
   await new AccountStore(shared, {}, memento()).setActiveId('c');
 
   assert.equal(new AccountStore(shared, {}, memento()).getActiveId(), 'c');
 });
 
 test('rotation moves only its own window, not the default for new ones', async () => {
-  const shared = memento({ 'chatgptMaestro.accounts': [...accounts] });
+  const shared = memento({ 'chatgpt.accounts': [...accounts] });
   const window = new AccountStore(shared, {}, memento());
   await window.setActiveId('a');
   await window.setActiveId('b', false);
@@ -90,7 +90,7 @@ test('rotation moves only its own window, not the default for new ones', async (
 });
 
 test('removing the active account moves the window to the first one left', async () => {
-  const shared = memento({ 'chatgptMaestro.accounts': [...accounts] });
+  const shared = memento({ 'chatgpt.accounts': [...accounts] });
   const store = new AccountStore(shared, { delete: async () => undefined }, memento());
   await store.setActiveId('b');
 
@@ -100,7 +100,7 @@ test('removing the active account moves the window to the first one left', async
 });
 
 test("another window's request reads the account that window published", async () => {
-  const shared = memento({ 'chatgptMaestro.accounts': [...accounts] });
+  const shared = memento({ 'chatgpt.accounts': [...accounts] });
   const first = new AccountStore(shared, {}, memento());
   const second = new AccountStore(shared, {}, memento());
 
@@ -115,7 +115,7 @@ test("another window's request reads the account that window published", async (
 });
 
 test("rotating another window's request moves only that window", async () => {
-  const shared = memento({ 'chatgptMaestro.accounts': [...accounts] });
+  const shared = memento({ 'chatgpt.accounts': [...accounts] });
   const first = new AccountStore(shared, {}, memento());
   const second = new AccountStore(shared, {}, memento());
   await first.setActiveId('a');

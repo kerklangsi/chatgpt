@@ -338,7 +338,7 @@ export class AccountLease {
   private explainNoCandidates(requestedModel: string, _window?: string): string {
     const all = this.accounts.list();
     if (all.length === 0) {
-      return 'No ChatGPT account has been added yet. Please use "ChatGPT Maestro: Add Account (Browser Login)".';
+      return 'No ChatGPT account has been added yet. Please use "ChatGPT: Add Account (Browser Login)".';
     }
     if (all.every((a) => a.needsReauth)) {
       return 'Every ChatGPT account needs to sign in again.';

@@ -1,7 +1,6 @@
 ﻿import * as vscode from 'vscode';
 import { Logger } from '../utils/logger';
 import { BrowserLoginService } from '../auth/browserLogin';
-import { validateAndFetchSession } from '../auth/sessionAuth';
 import { SessionRefresher } from '../auth/sessionRefresher';
 import { AccountStore } from './accountStore';
 import { fetchQuota, QuotaUnauthorizedError } from './quotaService';
@@ -75,10 +74,6 @@ export class AccountManager implements vscode.Disposable {
    */
   async addAccount(): Promise<AccountMetadata | undefined> {
     try {
-      const configuredBrowser = vscode.workspace
-        .getConfiguration('chatgptMaestro')
-        .get<string>('browser.path');
-
       const resolved = await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
@@ -86,10 +81,9 @@ export class AccountManager implements vscode.Disposable {
           cancellable: true,
         },
         async (_progress, token) => {
-          return await BrowserLoginService.loginWithBrowser(token, configuredBrowser);
+          return await BrowserLoginService.loginWithBrowser(token);
         },
       );
-
       const existing = this.store.get(resolved.account.id);
       const account: AccountMetadata = {
         ...resolved.account,
@@ -115,65 +109,7 @@ export class AccountManager implements vscode.Disposable {
         return undefined;
       }
       Logger.error('Browser login failed', error);
-      const choice = await vscode.window.showErrorMessage(
-        `Browser login failed: ${error.message}. Would you like to enter your session token or cookie manually?`,
-        'Enter Token / Cookie',
-        'Dismiss',
-      );
-      if (choice === 'Enter Token / Cookie') {
-        return await this.addAccountWithToken();
-      }
-      return undefined;
-    }
-  }
-
-  /**
-   * Manual token or cookie login flow.
-   */
-  async addAccountWithToken(): Promise<AccountMetadata | undefined> {
-    const input = await vscode.window.showInputBox({
-      title: 'ChatGPT Maestro: Paste Session Token or Cookie',
-      prompt: 'Paste your ChatGPT accessToken (eyJ...), __Secure-next-auth.session-token, or full Cookie header from chatgpt.com',
-      password: true,
-      ignoreFocusOut: true,
-    });
-
-    if (!input || !input.trim()) {
-      return undefined;
-    }
-
-    try {
-      const resolved = await vscode.window.withProgress(
-        {
-          location: vscode.ProgressLocation.Notification,
-          title: 'Validating ChatGPT session…',
-        },
-        async () => {
-          return await validateAndFetchSession(input.trim());
-        },
-      );
-
-      const existing = this.store.get(resolved.account.id);
-      const account: AccountMetadata = {
-        ...resolved.account,
-        addedAt: existing?.addedAt ?? Date.now(),
-        quota: existing?.quota,
-      };
-
-      await this.store.setSession(account.id, resolved.session);
-      await this.store.upsert(account);
-      this.cacheAccessToken(account.id, resolved.session.accessToken, resolved.session.expiresAt);
-
-      if (!this.store.getActiveId()) {
-        await this.store.setActiveId(account.id);
-      }
-      this.onDidChangeEmitter.fire();
-
-      void this.refreshQuota(account.id);
-      vscode.window.showInformationMessage(`Successfully connected ChatGPT account: ${account.email} (${account.subscriptionTier?.toUpperCase()})`);
-      return account;
-    } catch (err: any) {
-      vscode.window.showErrorMessage(`Failed to add ChatGPT account: ${err.message}`);
+      vscode.window.showErrorMessage(`Browser login failed: ${error.message}`);
       return undefined;
     }
   }
@@ -296,7 +232,7 @@ export class AccountManager implements vscode.Disposable {
   startAutoRefresh(): void {
     this.stopAutoRefresh();
     const intervalMinutes = vscode.workspace
-      .getConfiguration('chatgptMaestro')
+      .getConfiguration('chatgpt')
       .get<number>('quota.autoRefreshMinutes', 10);
     if (intervalMinutes > 0) {
       this.autoRefreshTimer = setInterval(() => {

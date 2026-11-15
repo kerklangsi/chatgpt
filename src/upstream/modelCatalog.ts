@@ -138,7 +138,7 @@ export class ModelCatalog {
 
   match(requestedId: string): ModelMatch {
     const all = this.listAll();
-    const clean = requestedId.replace(/^chatgpt-maestro\//, '').toLowerCase();
+    const clean = requestedId.replace(/^chatgpt\//, '').toLowerCase();
 
     const exact = all.find((m) => m.id.toLowerCase() === clean);
     if (exact) return { model: exact, kind: 'exact' };

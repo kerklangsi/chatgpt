@@ -5,11 +5,11 @@ import { Logger } from '../utils/logger';
 
 /** Markers delimiting the config block this extension owns. */
 export const MANAGED_BLOCK_BEGIN =
-  '# --- BEGIN ANTIGRAVITY MAESTRO (auto-generated, do not edit) ---';
-export const MANAGED_BLOCK_END = '# --- END ANTIGRAVITY MAESTRO ---';
+  '# --- BEGIN CHATGPT (auto-generated, do not edit) ---';
+export const MANAGED_BLOCK_END = '# --- END CHATGPT ---';
 
-const BACKUP_SUFFIX = '.antigravity-maestro-backup';
-const TEMP_SUFFIX = '.antigravity-maestro-tmp';
+const BACKUP_SUFFIX = '.chatgpt-backup';
+const TEMP_SUFFIX = '.chatgpt-tmp';
 
 export type AgentTarget = 'claude-code' | 'codex';
 
@@ -110,8 +110,8 @@ export function removeManagedBlock(existing: string): string {
     // Truncating to EOF could delete content appended after the block, so
     // refuse rather than guess.
     throw new Error(
-      'The Antigravity Maestro block is malformed (its end marker is missing). ' +
-        'Fix the file by hand or restore it from the .antigravity-maestro-backup copy.',
+      'The ChatGPT block is malformed (its end marker is missing). ' +
+        'Fix the file by hand or restore it from the .chatgpt-backup copy.',
     );
   }
 

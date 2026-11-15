@@ -65,6 +65,10 @@ export class ChatGPTClient {
       historyAndTrainingDisabled = true,
     } = options;
 
+    if (!cookies) {
+      return await this.sendOpenAIMessageStream(options);
+    }
+
     const messageId = randomUUID();
     const parentId = parentMessageId || randomUUID();
 
@@ -228,10 +232,104 @@ export class ChatGPTClient {
   }
 
   /**
+   * Sends chat message via OpenAI API completions endpoint for OAuth accounts (no web cookies).
+   */
+  private async sendOpenAIMessageStream(options: StreamOptions): Promise<ChatResponseResult> {
+    const { model, prompt, accessToken, signal, onChunk, onThought } = options;
+    const canonicalModel = this.canonicalModelName(model) === 'auto' ? 'gpt-4o' : this.canonicalModelName(model);
+
+    Logger.debug(`Sending OpenAI completions request (model: ${canonicalModel})`);
+
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: canonicalModel,
+        messages: [{ role: 'user', content: prompt }],
+        stream: true,
+      }),
+      signal,
+    });
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      if (res.status === 401 || res.status === 403) {
+        throw new AuthError(`ChatGPT authentication error (${res.status}): ${errText || res.statusText}`);
+      }
+      if (res.status === 429) {
+        throw new RateLimitError(
+          `ChatGPT rate limit or quota exceeded (429): ${errText || 'Please try again later or switch accounts.'}`,
+        );
+      }
+      throw new ChatGPTError(`ChatGPT request failed (HTTP ${res.status}): ${errText || res.statusText}`, res.status);
+    }
+
+    if (!res.body) {
+      throw new ChatGPTError('ChatGPT response body is empty.');
+    }
+
+    let fullText = '';
+    let thoughtText = '';
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith('data:')) continue;
+          const dataStr = trimmed.slice(5).trim();
+          if (dataStr === '[DONE]') break;
+
+          try {
+            const parsed = JSON.parse(dataStr);
+            const delta = parsed.choices?.[0]?.delta;
+            if (delta) {
+              if (delta.reasoning_content && onThought) {
+                const thoughtDelta = String(delta.reasoning_content);
+                thoughtText += thoughtDelta;
+                onThought(thoughtDelta);
+              }
+              if (delta.content) {
+                const contentDelta = String(delta.content);
+                fullText += contentDelta;
+                onChunk(contentDelta);
+              }
+            }
+          } catch {}
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+
+    const inputTokens = Math.ceil(prompt.length / 3.7);
+    const outputTokens = Math.ceil(fullText.length / 3.7) + Math.ceil(thoughtText.length / 3.7);
+
+    return {
+      fullText,
+      thoughtText,
+      inputTokens,
+      outputTokens,
+    };
+  }
+
+  /**
    * Normalizes model ID to ChatGPT web model name.
    */
   private canonicalModelName(id: string): string {
-    const clean = id.replace(/^chatgpt-maestro\//, '').toLowerCase();
+    const clean = id.replace(/^chatgpt\//, '').toLowerCase();
     if (clean.includes('o3-mini')) return 'o3-mini';
     if (clean.includes('o1-mini')) return 'o1-mini';
     if (clean.includes('o1')) return 'o1';

@@ -18,12 +18,12 @@ import {
 import { WINDOW_ENV, WINDOW_HEADER } from './window';
 
 /** Env var Codex reads the gateway key from (referenced by env_key in config.toml). */
-export const CODEX_ENV_KEY = 'CHATGPT_MAESTRO_API_KEY';
+export const CODEX_ENV_KEY = 'CHATGPT_API_KEY';
 
 /** Provider id owned inside [model_providers.*]. */
-const PROVIDER_ID = 'chatgpt-maestro';
+const PROVIDER_ID = 'chatgpt';
 
-const SNAPSHOT_KEY = 'chatgptMaestro.codexSnapshot';
+const SNAPSHOT_KEY = 'chatgpt.codexSnapshot';
 
 /** Top-level keys this integration owns while it is applied. */
 const MANAGED_TOP_LEVEL_KEYS = [
@@ -363,7 +363,7 @@ function findProviderSection(content: string): { start: number; end: number } | 
 function appendProviderSection(content: string, endpoint: GatewayEndpoint): string {
   const section = [
     `[model_providers.${PROVIDER_ID}]`,
-    'name = "Antigravity Maestro"',
+    'name = "ChatGPT"',
     `base_url = "${tomlEscape(`${endpoint.baseUrl}/v1`)}"`,
     `env_key = "${CODEX_ENV_KEY}"`,
     `env_http_headers = { "${WINDOW_HEADER}" = "${WINDOW_ENV}" }`,

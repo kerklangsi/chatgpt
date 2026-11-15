@@ -39,9 +39,9 @@
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-  const FAMILIES = ['claude', 'gemini', 'gpt', 'other'];
-  const FAMILY_LABEL = { claude: 'Claude', gemini: 'Gemini', gpt: 'GPT-OSS', other: 'Other' };
-  const FAMILY_SHORT = { claude: 'Claude', gemini: 'Gemini', gpt: 'GPT-OSS', other: 'Other' };
+  const FAMILIES = ['gpt', 'o-series', 'other'];
+  const FAMILY_LABEL = { gpt: 'GPT', 'o-series': 'o-series', other: 'Other' };
+  const FAMILY_SHORT = { gpt: 'GPT', 'o-series': 'o-series', other: 'Other' };
 
   // Remaining-quota thresholds. Fixed and explainable: under 50% is a
   // heads-up (amber), under 20% is low (red). Above that, colour is the family's.
@@ -76,41 +76,7 @@
 
   document.getElementById('add-account').addEventListener('click', () => post('addAccount'));
   document.getElementById('add-account-empty').addEventListener('click', () => post('addAccount'));
-  document.getElementById('add-token')?.addEventListener('click', () => post('addAccountToken'));
-  document.getElementById('add-token-empty')?.addEventListener('click', () => post('addAccountToken'));
   document.getElementById('clear-history').addEventListener('click', () => post('clearHistory'));
-
-  // Coordinator Task creation form listeners
-  document.getElementById('btn-create-task')?.addEventListener('click', () => {
-    const form = document.getElementById('new-task-form');
-    if (form) form.classList.toggle('hidden');
-  });
-  document.getElementById('btn-cancel-task')?.addEventListener('click', () => {
-    const form = document.getElementById('new-task-form');
-    if (form) form.classList.add('hidden');
-  });
-  document.getElementById('btn-submit-task')?.addEventListener('click', () => {
-    const titleInput = document.getElementById('task-title-input');
-    const descInput = document.getElementById('task-desc-input');
-    const modelSelect = document.getElementById('task-model-select');
-    const prioritySelect = document.getElementById('task-priority-select');
-
-    const title = titleInput ? titleInput.value.trim() : '';
-    const description = descInput ? descInput.value.trim() : '';
-    const assignee = modelSelect ? modelSelect.value.trim() : '';
-    const priority = prioritySelect ? prioritySelect.value : 'normal';
-
-    if (!title || !description) {
-      alert('Task title and description are required.');
-      return;
-    }
-
-    post('createCoordinatorTask', { title, description, assignee, priority });
-    if (titleInput) titleInput.value = '';
-    if (descInput) descInput.value = '';
-    const form = document.getElementById('new-task-form');
-    if (form) form.classList.add('hidden');
-  });
 
   // The range picker is a radio group: one tab stop, arrows move the choice.
   el.usageRanges.addEventListener('click', (event) => {
@@ -505,7 +471,6 @@
   function render() {
     renderAccounts();
     renderIntegrations();
-    renderCoordinator();
     renderUsage();
     firstPaint = false;
   }
@@ -759,7 +724,7 @@
       // In a rotation row the row's own primary button is already "Sign in".
       return (
         '<div class="trouble tone-warn' + (inRow ? ' no-action' : '') + '">' + ICON.key +
-        '<div class="trouble-text"><b>Signed out</b><span>Google needs you to sign in again. The figures below are from before.</span></div>' +
+          '<div class="trouble-text"><b>Signed out</b><span>ChatGPT needs you to sign in again. The figures below are from before.</span></div>' +
         (inRow
           ? ''
           : '<button class="btn btn-sm btn-warn" data-action="reauth" data-account-id="' + id + '" data-key="fix-' + id + '">Sign in</button>') +
@@ -827,9 +792,9 @@
   const RING_R = 42;
   const ARC = 'M20.302 79.698A42 42 0 1 1 79.698 79.698';
 
-  /** Family name for a ring cap; GPT-OSS sheds its suffix only in a very narrow panel. */
+  /** Short family name shown in the ring cap. */
   function familyCap(family) {
-    return family === 'gpt' ? 'GPT<span class="oss">-OSS</span>' : escapeHtml(FAMILY_LABEL[family]);
+    return escapeHtml(FAMILY_LABEL[family] || family);
   }
 
   function ring(percentage, family, info) {
@@ -1023,12 +988,8 @@
       .filter((group) => (group.buckets || []).length > 0)
       .map((group) => {
         const name = String(group.displayName || '');
-        const family = /gemini/i.test(name) ? 'gemini' : /claude|gpt/i.test(name) ? 'claude' : 'other';
-        const short = /gemini/i.test(name)
-          ? 'Gemini'
-          : /claude/i.test(name) && /gpt/i.test(name)
-            ? 'Claude + GPT-OSS'
-            : name.replace(/\s*models?$/i, '');
+        const family = familyOf(name);
+        const short = name.replace(/\s*models?$/i, '');
         // Shortest window first: the 5-hour one is what bites today.
         const buckets = group.buckets.slice().sort((a, b) => windowLength(a) - windowLength(b));
         const kinds = buckets.map((bucket) => {
@@ -1261,121 +1222,6 @@
     }
   }
 
-  function renderCoordinator() {
-    const coord = state.coordinator || { tasks: [], availableModels: [] };
-    const tasks = coord.tasks || [];
-    const models = coord.availableModels || [];
-
-    const coordCountEl = document.getElementById('coordinator-count');
-    if (coordCountEl) setCount(coordCountEl, tasks.length);
-
-    const tasksMeta = document.getElementById('tasks-count-meta');
-    if (tasksMeta) tasksMeta.textContent = tasks.length === 1 ? '1 task' : tasks.length + ' tasks';
-
-    const modelsMeta = document.getElementById('models-count-meta');
-    if (modelsMeta) modelsMeta.textContent = models.length === 1 ? '1 model available' : models.length + ' models available';
-
-    // Populate model select dropdown
-    const modelSelect = document.getElementById('task-model-select');
-    if (modelSelect) {
-      const currentVal = modelSelect.value;
-      let optionsHtml = '<option value="">Assignee Model (Optional)</option>';
-      for (const m of models) {
-        optionsHtml += '<option value="' + escapeAttribute(m.id) + '">' + escapeHtml(m.name || m.id) + ' (' + escapeHtml(m.vendor) + ')</option>';
-      }
-      modelSelect.innerHTML = optionsHtml;
-      modelSelect.value = currentVal;
-    }
-
-    // Render tasks list
-    const tasksList = document.getElementById('coordinator-tasks-list');
-    if (tasksList) {
-      if (tasks.length === 0) {
-        tasksList.innerHTML =
-          '<div class="glass-quiet" style="padding: 16px; text-align: center; color: var(--text-2); font-size: 12px; border-radius: 8px;">' +
-          'No coordinator tasks yet. Click <b>+ New Task</b> or use the coordinator tools in Copilot Chat to delegate work.' +
-          '</div>';
-      } else {
-        tasksList.innerHTML = tasks.map((t) => {
-          const statusColors = {
-            open: 'background: rgba(33, 150, 243, 0.2); color: #64B5F6;',
-            claimed: 'background: rgba(255, 152, 0, 0.2); color: #FFB74D;',
-            done: 'background: rgba(76, 175, 80, 0.2); color: #81C784;',
-            blocked: 'background: rgba(244, 67, 54, 0.2); color: #E57373;',
-          };
-          const badgeStyle = statusColors[t.status] || statusColors.open;
-
-          let html = '<div class="glass" style="padding: 10px 12px; border-radius: 8px;">' +
-            '<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 4px;">' +
-            '<div style="font-weight: 600; font-size: 13px; color: var(--text-1);">' + escapeHtml(t.title) + '</div>' +
-            '<div style="display: flex; gap: 4px; align-items: center;">' +
-            '<span style="font-size: 10px; font-weight: 600; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; ' + badgeStyle + '">' + escapeHtml(t.status) + '</span>' +
-            '<span style="font-size: 10px; color: var(--text-2); background: rgba(255,255,255,0.06); padding: 2px 5px; border-radius: 4px;">' + escapeHtml(t.priority || 'normal') + '</span>' +
-            '</div>' +
-            '</div>' +
-            '<div style="font-size: 12px; color: var(--text-2); margin-bottom: 8px; white-space: pre-wrap;">' + escapeHtml(t.description) + '</div>';
-
-          if (t.assignee) {
-            html += '<div style="font-size: 11px; color: var(--text-2); margin-bottom: 6px;">Assignee: <code style="color: #64B5F6;">' + escapeHtml(t.assignee) + '</code></div>';
-          }
-
-          if (t.result) {
-            html += '<details style="margin-top: 6px; font-size: 11px;">' +
-              '<summary style="cursor: pointer; color: #81C784; font-weight: 600;">View Result</summary>' +
-              '<pre style="margin-top: 6px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 4px; overflow-x: auto; white-space: pre-wrap; font-size: 11px; max-height: 200px; overflow-y: auto;">' + escapeHtml(t.result) + '</pre>' +
-              '</details>';
-          }
-
-          if (t.status !== 'done') {
-            html += '<div style="display: flex; gap: 6px; margin-top: 8px; align-items: center;">' +
-              '<select class="delegate-model-select" data-task-id="' + escapeAttribute(t.id) + '" style="flex: 1; padding: 4px 6px; font-size: 11px; background: rgba(0,0,0,0.25); border: 1px solid var(--line); color: var(--text-1); border-radius: 4px;">' +
-              '<option value="">Select model to run task…</option>' +
-              models.map((m) => '<option value="' + escapeAttribute(m.id) + '">' + escapeHtml(m.name || m.id) + ' (' + escapeHtml(m.vendor) + ')</option>').join('') +
-              '</select>' +
-              '<button class="btn btn-primary btn-delegate" data-task-id="' + escapeAttribute(t.id) + '" style="font-size: 11px; padding: 4px 8px;">Run with Model</button>' +
-              '</div>';
-          }
-
-          html += '</div>';
-          return html;
-        }).join('');
-
-        tasksList.querySelectorAll('.btn-delegate').forEach((btn) => {
-          btn.addEventListener('click', () => {
-            const taskId = btn.dataset.taskId;
-            const select = tasksList.querySelector('.delegate-model-select[data-task-id="' + taskId + '"]');
-            const targetModelId = select?.value;
-            if (!targetModelId) {
-              alert('Please select a target model to run this task.');
-              return;
-            }
-            btn.textContent = 'Running…';
-            btn.disabled = true;
-            post('delegateCoordinatorTask', { taskId, targetModelId });
-          });
-        });
-      }
-    }
-
-    // Render available models list
-    const modelsList = document.getElementById('available-models-list');
-    if (modelsList) {
-      if (models.length === 0) {
-        modelsList.innerHTML = '<div style="font-size: 12px; color: var(--text-2);">No other chat models currently detected in VS Code.</div>';
-      } else {
-        modelsList.innerHTML = models.map((m) => {
-          return '<div class="glass-quiet" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-radius: 6px; font-size: 12px;">' +
-            '<div>' +
-            '<span style="font-weight: 500; color: var(--text-1);">' + escapeHtml(m.name || m.id) + '</span>' +
-            '<span style="color: var(--text-2); font-size: 10px; margin-left: 6px;">' + escapeHtml(m.vendor) + '</span>' +
-            '</div>' +
-            '<code style="font-size: 10px; color: var(--text-2);">' + escapeHtml(m.id) + '</code>' +
-            '</div>';
-        }).join('');
-      }
-    }
-  }
-
   function renderUsage() {
     const everything = rangeRows('all');
     const rows = rangeRows(usageRange);
@@ -1428,7 +1274,7 @@
     } else {
       const all = totals.input + totals.thinking + totals.output;
       const share = (value) => (all > 0 ? (value / all) * 100 : 0);
-      const families = ['claude', 'gemini', 'gpt', 'other'].filter((family) => familyTokens[family] > 0);
+      const families = FAMILIES.filter((family) => familyTokens[family] > 0);
       const headline =
         '<section class="uhead glass">' +
         '<div class="uhead-top">' +
@@ -1752,17 +1598,15 @@
       tab.setAttribute('aria-selected', String(selected));
     });
     document.getElementById('accounts-tab').classList.toggle('hidden', name !== 'accounts');
-    const coordTab = document.getElementById('coordinator-tab');
-    if (coordTab) coordTab.classList.toggle('hidden', name !== 'coordinator');
     document.getElementById('usage-tab').classList.toggle('hidden', name !== 'usage');
   }
 
   // ── Pieces ────────────────────────────────────────────────────────────────
 
   /**
-   * The real picture when Google gives one; otherwise a gradient disc whose hue
+   * The real picture when ChatGPT gives one; otherwise a gradient disc whose hue
    * is hashed inside the cool brand range (190-300), so no avatar can be
-   * mistaken for Claude orange or GPT-OSS green.
+   * mistaken for the GPT family green.
    */
   function avatar(account, size, live) {
     const initial = (account.name || account.email || '?').trim().charAt(0).toUpperCase();
@@ -1835,13 +1679,10 @@
 
   function familyOf(modelId) {
     const id = String(modelId || '').toLowerCase();
-    if (id.includes('claude')) {
-      return 'claude';
+    if (/(?:^|\s)o(?:\d|[- ]series)/.test(id)) {
+      return 'o-series';
     }
-    if (id.includes('gemini')) {
-      return 'gemini';
-    }
-    return id.includes('gpt') ? 'gpt' : 'other';
+    return id.includes('gpt') || id === 'auto' ? 'gpt' : 'other';
   }
 
   function modelNames() {
@@ -1870,7 +1711,7 @@
         out.push(part.charAt(0).toUpperCase() + part.slice(1));
       }
     });
-    return out.join(' ').replace('GPT OSS', 'GPT-OSS');
+    return out.join(' ');
   }
 
   /** When every account shares a domain, the domain says nothing in a list. */

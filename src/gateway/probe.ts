@@ -2,7 +2,7 @@
 const PROBE_TIMEOUT_MS = 1_500;
 
 /**
- * True when a Maestro gateway that accepts `apiKey` answers at `baseUrl` —
+ * True when a gateway that accepts `apiKey` answers at `baseUrl` —
  * one this extension runs in some VS Code window, rather than another local
  * proxy on the port or nothing at all.
  */

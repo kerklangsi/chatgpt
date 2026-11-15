@@ -1,6 +1,26 @@
 ﻿import assert from 'node:assert/strict';
 import test from 'node:test';
+import { modelFamily, quotaPools } from '../accounts/quotaPools';
 import { ModelCatalog } from '../upstream/modelCatalog';
+
+test('quota families: classify GPT and o-series models', () => {
+  assert.equal(modelFamily('gpt-4o'), 'gpt');
+  assert.equal(modelFamily('o3-mini'), 'o-series');
+  assert.equal(modelFamily('o1'), 'o-series');
+  assert.equal(modelFamily('unknown-model'), 'other');
+});
+
+test('quota pools: groups models into pools and picks tightest first', () => {
+  const pools = quotaPools([
+    { modelId: 'gpt-4o', percentage: 70, resetTime: '' },
+    { modelId: 'gpt-4o-mini', percentage: 100, resetTime: '' },
+    { modelId: 'o3-mini', percentage: 40, resetTime: '' },
+    { modelId: 'o1', percentage: 10, resetTime: '' },
+  ]);
+  assert.ok(pools.length > 0);
+  assert.equal(pools[0].model.modelId, 'o1');
+  assert.equal(pools[0].model.percentage, 10);
+});
 
 test('catalog: list all static models with defaults', () => {
   const catalog = new ModelCatalog();
@@ -18,7 +38,7 @@ test('catalog: matching exact and alias model names', () => {
   assert.equal(m1.model.id, 'gpt-4o');
   assert.equal(m1.kind, 'exact');
 
-  const m2 = catalog.match('chatgpt-maestro/o3-mini');
+  const m2 = catalog.match('chatgpt/o3-mini');
   assert.equal(m2.model.id, 'o3-mini');
   assert.equal(m2.model.supportsThinking, true);
 
